@@ -1,12 +1,12 @@
-package com.example.websocketdemo;
+package com.cs451checkers.checkersgame;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class WebsocketDemoApplication {
+public class CheckersApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(WebsocketDemoApplication.class, args);
+		SpringApplication.run(CheckersApplication.class, args);
 	}
 }
