@@ -1,4 +1,4 @@
-package com.example.websocketdemo.model;
+package com.cs451checkers.checkersgame.model;
 
 
 public class ChatMessage {

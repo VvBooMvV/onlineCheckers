@@ -486,7 +486,6 @@ function  checkForMoves(){
 function declareWinner(){
     black_background.style.display = "inline";
     score.style.display = "block";
-    0
     if(the_checker[1].color == "white")
         score.innerHTML = "Black wins";
     else
@@ -498,7 +497,7 @@ function getDimension (){
     contor ++;
     windowHeight = window.innerHeight
         || document.documentElement.clientHeight
-        || document.body.clientHeight;  ;
+        || document.body.clientHeight;
     windowWidth =  window.innerWidth
         || document.documentElement.clientWidth
         || document.body.clientWidth;

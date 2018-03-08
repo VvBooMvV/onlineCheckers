@@ -1,4 +1,4 @@
-package com.example.websocketdemo.controller;
+package com.cs451checkers.checkersgame.controller;
 
 import com.example.websocketdemo.model.ChatMessage;
 import org.springframework.messaging.handler.annotation.MessageMapping;
