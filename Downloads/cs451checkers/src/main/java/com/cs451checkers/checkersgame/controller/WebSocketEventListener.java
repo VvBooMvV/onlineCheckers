@@ -1,6 +1,6 @@
 package com.cs451checkers.checkersgame.controller;
 
-import com.example.websocketdemo.model.ChatMessage;
+import com.cs451checkers.checkersgame.model.ChatMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

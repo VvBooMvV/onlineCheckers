@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+    <title>HTML5 Checkers</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <link href="/css/new-main.css" rel="stylesheet">
+    <script src="/js/new-main.js"></script>
+</head>
+<body>
+<div class="column">
+    <div class="info">
+        <h1>Checkers</h1>
+        <hr>
+    </div>
+    <div class="stats">
+        <h2>Game Statistics</h2>
+        <div class="wrapper">
+            <div id="player1">
+                <h3>Player 1 (Top)</h3>
+            </div>
+            <div id="player2">
+                <h3>Player 2 (Bottom)</h3>
+            </div>
+        </div>
+        <div class="clearfix"></div>
+        <div class="turn"></div>
+        <button id="cleargame">Reset Game</button>
+    </div>
+</div>
+<div class="column">
+    <div id="board">
+        <div class="tiles"></div>
+        <div class="pieces">
+            <div class="player1pieces">
+            </div>
+            <div class="player2pieces">
+            </div>
+        </div>
+    </div>
+</body>
+</html>

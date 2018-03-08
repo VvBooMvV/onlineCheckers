@@ -134,8 +134,8 @@ window.onload = function() {
     }
 
     function Tile(linkedElement, position) {
-        this.element = element;
-        this.position = undefined;
+        this.element = linkedElement;
+        this.position = position;
         //This shit is absolute magic.
         this.validTile = function (piece) {
             if (distance(this.position[0], this.position[1], piece.position[0], piece.position[1]) === Math.sqrt(2)) {
@@ -148,10 +148,10 @@ window.onload = function() {
     }
 
     var Board = {
-        board: gameBoard,
+        board: boardstate,
         playerTurn: PlayerTurnEnum.red,
         //TODO: potentially useless????
-        titlesElement: $('div.titles'),
+        tilesElement: $('div.tiles'),
         //TODO: potential fucking magic?
         //dictionary to convert position in Board.board to the viewport units
         dictionary: ["0vmin", "10vmin", "20vmin", "30vmin", "40vmin", "50vmin", "60vmin", "70vmin", "80vmin", "90vmin"],
@@ -162,15 +162,15 @@ window.onload = function() {
             for (row in this.board) { //row is the index
                 for (column in this.board[row]) { //column is the index
                     //whole set of if statements control where the tiles and pieces should be placed on the board
-                    if(row%2 === 1) {
-                        if(column%2 === 0) {
-                            this.tilesElement.append("<div class='tile' id='tile" + tileCount+"' style='top:"+this.dictionary[row]+";left:"+this.dictionary[column]+";'></div>");
+                    if(row % 2 === 1) {
+                        if(column % 2 === 0) {
+                            this.tilesElement.append("<div class='tile' id='tile" + tileCount + "' style='top:" + this.dictionary[row] + ";left:" + this.dictionary[column] + ";'></div>");
                             tiles[tileCount] = new Tile($("#tile"+tileCount), [parseInt(row), parseInt(column)]);
                             tileCount += 1;
                         }
                     } else {
-                        if(column%2 === 1) {
-                            this.tilesElement.append("<div class='tile' id='tile"+tileCount+"' style='top:"+this.dictionary[row]+";left:"+this.dictionary[column]+";'></div>");
+                        if(column % 2 === 1) {
+                            this.tilesElement.append("<div class='tile' id='tile" + tileCount + "' style='top:" + this.dictionary[row] + ";left:"+this.dictionary[column]+  ";'></div>");
                             tiles[tileCount] = new Tile($("#tile"+tileCount), [parseInt(row), parseInt(column)]);
                             tileCount += 1;
                         }
@@ -269,6 +269,4 @@ window.onload = function() {
             }
         }
     });
-
-}
 };
