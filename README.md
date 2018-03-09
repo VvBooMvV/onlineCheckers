@@ -8,9 +8,9 @@ TODOs:
 
 -Primary functionality:
 
-~~-A basic checkers game  ~~
+~~-A basic checkers game~~
   
-~~-Simple websocket communication  ~~
+~~-Simple websocket communication~~
   
 -Client to client hosting  
   
