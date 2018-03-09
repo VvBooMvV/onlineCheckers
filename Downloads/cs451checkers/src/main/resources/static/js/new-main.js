@@ -71,6 +71,9 @@ window.onload = function() {
                 //TODO: add board functionality to keep track of player tiles
                 //TODO: add board functionality to update which player is on which tile
 
+                if(!this.king && (this.position[0] === 0 || this.position[0] === 7 ))
+                    this.makeKing();
+
                 Board.switchTurn();
                 Board.redraw();
                 //TODO: use websocket to send spring whatever new information via board object
