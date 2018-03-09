@@ -16,10 +16,8 @@ public class WebSocketConfig extends AbstractWebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        /*registry.setApplicationDestinationPrefixes("/app");
-        registry.enableSimpleBroker("/topic");   // Enables a simple in-memory broker*/
-        registry.setApplicationDestinationPrefixes("/app");
-        registry.enableSimpleBroker("/topic");   // Enables a simple in-memory broker
+        registry.setApplicationDestinationPrefixes("/checkers");
+        registry.enableSimpleBroker("/game");   // Enables a simple in-memory broker
 
         //   Use this for enabling a Full featured broker like RabbitMQ
 
