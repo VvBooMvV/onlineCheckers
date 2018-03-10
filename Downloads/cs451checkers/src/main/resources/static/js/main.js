@@ -21,6 +21,8 @@ window.onload = function() {
     var ActionEnum = Object.freeze({"move":456, "jump":123});
     var PlayerTurnEnum = Object.freeze({"red":1, "black":2});
 
+    var lastPlayerTurn;
+
     //distance formula
     var distance = function (x1, y1, x2, y2) {
         return Math.sqrt(Math.pow((x1 - x2), 2) + Math.pow((y1 - y2), 2));
@@ -147,50 +149,93 @@ window.onload = function() {
         };
 
         this.canJump = function (newTile, looking) {
-            var dx = newTile[1] - this.position[1];
-            var dy = newTile[0] - this.position[0];
-            if (this.owner === PlayerTurnEnum.red && this.kinged === false) {
-                //Checks for unkinged piece moving backwards for red
-                if (newTile[0] < this.position[0]) {
-                    return false;
-                }
-            } else if (this.owner === PlayerTurnEnum.black && this.kinged === false) {
-                //Checks for unkinged piece moving backwards for black
-                if (newTile[0] > this.position[0]) {
-                    return false;
-                }
-            }
-
-            if (newTile[0] > 7 || newTile[1] > 7
-                || newTile[0] < 0 || newTile[1] < 0) {
-                //out of bounds check
-                return false;
-            }
-
-            //Get piece in between
-            var tileToCheckx = this.position[1] + dx / 2;
-            var tileToChecky = this.position[0] + dy / 2;
-            if (!Board.isValidMove(tileToChecky, tileToCheckx) && Board.isValidMove(newTile[0], newTile[1])) {
-                for (pieceIndex in pieces) {
-                    if (pieces[pieceIndex].position[0] === tileToChecky && pieces[pieceIndex].position[1] === tileToCheckx) {
-                        if (this.owner !== pieces[pieceIndex].owner) {
-                            if (!looking) {
-                                var moveString = this.owner.toString() + " " + this.id + " jump "
-                                    + this.position[0] + " " + this.position[1] + " " + newTile[0] + " " + newTile[1];
-                                Board.moves.push(moveString);
-                            }
-                            return pieces[pieceIndex];
-                        }
+            //TODO: super stupid hack, this is basically because sometimes we have objects and sometimes we don't
+            if (!looking) {
+                var dx = newTile.position[1] - this.position[1];
+                var dy = newTile.position[0] - this.position[0];
+                if (this.owner === PlayerTurnEnum.red && this.kinged === false) {
+                    //Checks for unkinged piece moving backwards for red
+                    if (newTile.position[0] < this.position[0]) {
+                        return false;
+                    }
+                } else if (this.owner === PlayerTurnEnum.black && this.kinged === false) {
+                    //Checks for unkinged piece moving backwards for black
+                    if (newTile.position[0] > this.position[0]) {
+                        return false;
                     }
                 }
+
+                if (newTile.position[0] > 7 || newTile.position[1] > 7
+                    || newTile.position[0] < 0 || newTile.position[1] < 0) {
+                    //out of bounds check
+                    return false;
+                }
+
+                //Get piece in between
+                var tileToCheckx = this.position[1] + dx / 2;
+                var tileToChecky = this.position[0] + dy / 2;
+                if (!Board.isValidMove(tileToChecky, tileToCheckx) && Board.isValidMove(newTile.position[0], newTile.position[1])) {
+                    for (pieceIndex in pieces) {
+                        if (pieces[pieceIndex].position[0] === tileToChecky && pieces[pieceIndex].position[1] === tileToCheckx) {
+                            if (this.owner !== pieces[pieceIndex].owner) {
+                                if (!looking) {
+                                    var moveString = this.owner.toString() + " " + this.id + " jump "
+                                        + this.position[0] + " " + this.position[1] + " " + newTile.position[0] + " " + newTile.position[1];
+                                    Board.moves.push(moveString);
+                                }
+                                return pieces[pieceIndex];
+                            }
+                        }
+                    }
+                } else {
+                    return false;
+                }
             } else {
-                return false;
+                var dx = newTile[1] - this.position[1];
+                var dy = newTile[0] - this.position[0];
+                if (this.owner === PlayerTurnEnum.red && this.kinged === false) {
+                    //Checks for unkinged piece moving backwards for red
+                    if (newTile[0] < this.position[0]) {
+                        return false;
+                    }
+                } else if (this.owner === PlayerTurnEnum.black && this.kinged === false) {
+                    //Checks for unkinged piece moving backwards for black
+                    if (newTile[0] > this.position[0]) {
+                        return false;
+                    }
+                }
+
+                if (newTile[0] > 7 || newTile[1] > 7
+                    || newTile[0] < 0 || newTile[1] < 0) {
+                    //out of bounds check
+                    return false;
+                }
+
+                //Get piece in between
+                var tileToCheckx = (parseInt(this.position[1]) + parseInt(dx)) / 2;
+                var tileToChecky = (parseInt(this.position[0]) + parseInt(dy)) / 2;
+                if (!Board.isValidMove(tileToChecky, tileToCheckx) && Board.isValidMove(newTile[0], newTile[1])) {
+                    for (pieceIndex in pieces) {
+                        if (pieces[pieceIndex].position[0] === tileToChecky && pieces[pieceIndex].position[1] === tileToCheckx) {
+                            if (this.owner !== pieces[pieceIndex].owner) {
+                                if (!looking) {
+                                    var moveString = this.owner.toString() + " " + this.id + " jump "
+                                        + this.position[0] + " " + this.position[1] + " " + newTile[0] + " " + newTile[1];
+                                    Board.moves.push(moveString);
+                                }
+                                return pieces[pieceIndex];
+                            }
+                        }
+                    }
+                } else {
+                    return false;
+                }
             }
         };
-        this.jump = function (tile) {
+        this.jump = function (tile, looking) {
             //TODO: calculate piece to be removed
             //if there is one, kill it, else false.
-            var canJump = this.canJump(tile.position);
+            var canJump = this.canJump(tile, looking);
             //Get piece in between
             if (canJump) {
                 //TODO: for now I'm going to implement jump as a valid move.  Think about whether or not this is necessary
@@ -217,6 +262,7 @@ window.onload = function() {
     }
 
     function Tile(linkedElement, position) {
+        //TODO: do I even need this?
         this.element = linkedElement;
         this.position = position;
         //This shit is absolute magic.
@@ -285,8 +331,8 @@ window.onload = function() {
             }
         },
         endTurn: function() {
+            lastPlayerTurn = this.playerTurn;
             sendTurn(this.board, this.playerTurn, this.moves);
-            this.switchTurn();
         },
         //resets the game board
         clear: function () {
@@ -296,10 +342,32 @@ window.onload = function() {
         },
         //This function will basically enact the last turn's moves provided by the server and perform them.
         redraw: function (moveSet) {
+            if (this.playerTurn !== lastPlayerTurn) {
+                moveSet.moves.forEach( function(move) {
+                    //REMINDER: These stings are in the format:
+                    //  0      1      2     3     4     5    6
+                    //owner pieceid jump startY startX newY newX
+                    //owner pieceid move startY startX newY newX
+                    //owner pieceid king
+                    var protocolString = move.split(" ");
+                    if (protocolString[2] === "move") {
+                        pieces[parseInt(protocolString[1])].positionMove([protocolString[5], protocolString[6]]);
+                    } else if (protocolString[2] === "jump") {
+                        //TODO: looking has to be true here because fucking mimicking moves means i don't have a tile object to use
+                        pieces[parseInt(protocolString[1])].jump([protocolString[5], protocolString[6]], true);
+                    } else if (protocolString[2] === "king") {
+                        //TODO: possibly redundant since check is already in move.
+                        pieces[parseInt(protocolString[1])].makeKing();
+                    }
+                });
+            }
+            this.switchTurn();
             //TODO: new plan b is redo the board every turn
             //Do nothing, you were the last person to go.  Clear the move list and prepare for the next turn
-            if (moveSet.moves === Board.moves) {
-                Board.moves = [];
+            //todo: first problem is that it doesn't ever find this as true
+            //TODO: temporarily work around this by just clearing it after move set is executed.
+            /*if (moveSet.moves === this.moves) {
+                this.moves = [];
                 return;
             } else {
                 moveSet.moves.forEach( function(move) {
@@ -312,14 +380,15 @@ window.onload = function() {
                     if (protocolString[2] === "move") {
                         pieces[parseInt(protocolString[1])].positionMove([protocolString[5], protocolString[6]]);
                     } else if (protocolString[2] === "jump") {
-                        pieces[parseInt(protocolString[1])].jump([protocolString[5], protocolString[6]]);
+                        //TODO: looking has to be true here because fucking mimicking moves means i don't have a tile object to use
+                        pieces[parseInt(protocolString[1])].jump([protocolString[5], protocolString[6]], true);
                     } else if (protocolString[2] === "king") {
                         //TODO: possibly redundant since check is already in move.
                         pieces[parseInt(protocolString[1])].makeKing();
                     }
-
                 });
-            }
+                this.moves = [];
+            }*/
         }
     };
 
