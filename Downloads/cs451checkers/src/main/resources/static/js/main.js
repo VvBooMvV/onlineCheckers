@@ -23,7 +23,7 @@ window.onload = function() {
     //distance formula
     var dist = function (x1, y1, x2, y2) {
         return Math.sqrt(Math.pow((x1-x2),2)+Math.pow((y1-y2),2));
-    }
+    };
     //Piece object - there are 24 instances of them in a checkers game
     function Piece (element, position) {
         //linked DOM element
@@ -40,18 +40,24 @@ window.onload = function() {
         //makes object a king
         this.king = false;
         this.makeKing = function () {
-            this.element.css("backgroundImage", "url('king"+this.player+".png')");
+            //this.element.css("backgroundImage", "url('king"+this.player+".png')");
             this.king = true;
-        }
+        };
         //moves the piece
         this.move = function (tile) {
             this.element.removeClass('selected');
             if(!Board.isValidPlacetoMove(tile.position[0], tile.position[1])) return false;
             //make sure piece doesn't go backwards if it's not a king
             if(this.player == 1 && this.king == false) {
-                if(tile.position[0] < this.position[0]) return false;
+                if(tile.position[0] < this.position[0]) {
+                    console.log("Going backwards for red");
+                    return false;
+                }
             } else if (this.player == 2 && this.king == false) {
-                if(tile.position[0] > this.position[0]) return false;
+                if(tile.position[0] > this.position[0]) {
+                    console.log("Going backwards for black");
+                    return false;
+                }
             }
             //remove the mark from Board.board and put it in the new spot
             Board.board[this.position[0]][this.position[1]] = 0;
@@ -64,16 +70,7 @@ window.onload = function() {
             if(!this.king && (this.position[0] == 0 || this.position[0] == 7 ))
                 this.makeKing();
             //Board.changePlayerTurn();
-            if (this.canJumpAny()) {
-                sendMessage(Board.board, '', '', Board.team);
-            } else {
-                if (Board.team == 1){
-                    var otherTeam = 2;
-                } else {
-                    var otherTeam = 1;
-                }
-                sendMessage(Board.board, '' , '', otherTeam);
-            }
+
             return true;
         };
 
@@ -130,7 +127,8 @@ window.onload = function() {
 
         this.remove = function () {
             //remove it and delete it from the gameboard
-            this.element.css("display", "none");
+            //this.element.css("display", "none");
+            this.element.
             if(this.player == 1) $('#player2').append("<div class='capturedPiece'></div>");
             if(this.player == 2) $('#player1').append("<div class='capturedPiece'></div>");
             Board.board[this.position[0]][this.position[1]] = 0;
@@ -160,7 +158,7 @@ window.onload = function() {
     var Board = {
         board: gameBoard,
         playerTurn: 1,
-        team: 1,
+        team: -1,
         tilesElement: $('div.tiles'),
         //dictionary to convert position in Board.board to the viewport units
         dictionary: ["0vmin", "10vmin", "20vmin", "30vmin", "40vmin", "50vmin", "60vmin", "70vmin", "80vmin", "90vmin"],
@@ -196,34 +194,63 @@ window.onload = function() {
                 }
             }
         },
+        drawBoard: function() {
+            var pieceCount = 0;
+            pieces.forEach( function(piece) {
+                piece.element.css("display", "none");
+            });
+            pieces = [];
+            $('.player1pieces').html("");
+            $('.player2pieces').html("");
+            for (row in this.board) { //row is the index
+                for (column in this.board[row]) { //column is the index
+                    if(this.board[row][column] == 1) {
+                        $('.player1pieces').append("<div class='piece' id='"+pieceCount+"' style='top:"+this.dictionary[row]+";left:"+this.dictionary[column]+";'></div>");
+                        pieces[pieceCount] = new Piece($("#"+pieceCount), [parseInt(row), parseInt(column)]);
+                        pieceCount += 1;
+                    } else if(this.board[row][column] == 2) {
+                        $('.player2pieces').append("<div class='piece' id='"+pieceCount+"' style='top:"+this.dictionary[row]+";left:"+this.dictionary[column]+";'></div>");
+                        pieces[pieceCount] = new Piece($("#"+pieceCount), [parseInt(row), parseInt(column)]);
+                        pieceCount += 1;
+                    }
+                }
+            }
+
+            $('.piece').on("click", function () {
+                var selected;
+                var isPlayersTurn = (Board.playerTurn === Board.team) && ($(this).parent().attr("class").split(' ')[0] === "player" + Board.playerTurn + "pieces");
+                if(isPlayersTurn) {
+                    if($(this).hasClass('selected')) {
+                        selected = true;
+                    }
+                    $('.piece').each(function(index) {$('.piece').eq(index).removeClass('selected')});
+                    if(!selected) {
+                        $(this).addClass('selected');
+                    }
+                }
+            });
+        },
         //check if the location has an object
         isValidPlacetoMove: function (row, column) {
             console.log(row); console.log(column); console.log(this.board);
-            if(this.board[row][column] == 0) {
-                return true;
-            } return false;
+            return this.board[row][column] == 0;
         },
         //change the active player - also changes div.turn's CSS
         changePlayerTurn: function () {
-            /*if(this.playerTurn == 1) {
-                this.playerTurn = 2;
-                $('.turn').css("background", "linear-gradient(to right, transparent 50%, #BEEE62 50%)");
-                return;
-            }
-            if(this.playerTurn == 2) {
-                this.playerTurn = 1;
-                $('.turn').css("background", "linear-gradient(to right, #BEEE62 50%, transparent 50%)");
-            }*/
-
             // send the turn
-            sendTurn(this.board, '', '');
+            sendTurn(this.board, this.playerTurn);
             // wait on response from other player
         },
         //reset the game
         clear: function () {
             location.reload();
+        },
+        redraw: function(newBoardstate, newTurn) {
+            this.board = newBoardstate;
+            this.playerTurn = newTurn;
+            this.drawBoard();
         }
-    }
+    };
 
     //initialize the board
     Board.initalize();
@@ -241,7 +268,17 @@ window.onload = function() {
             stompClient.subscribe('/game/init', function(messageOutput) {
                 showMessageOutput(JSON.parse(messageOutput.body));
             });
+            sendInit();
         });
+    }
+
+    function sendInit() {
+        stompClient.send("/checkers/join", {},
+            JSON.stringify({
+                'msgType': "join",
+                'team': -1
+            })
+        );
     }
 
     function disconnect() {
@@ -251,59 +288,41 @@ window.onload = function() {
         console.log("Disconnected");
     }
 
-    function sendMessage() {
-        stompClient.send("/checkers/saveboard", {}, JSON.stringify({'content': 'passing it back'}));
-    }
-
-    function sendTurn(board, turn, moves, playerTurn) {
+    function sendTurn(board, playerTurn) {
         stompClient.send("/checkers/processturn", {},
             JSON.stringify({
                 'board': board,
-                'currentTurn': turn,
-                'moves': moves,
-                'playerTurn': playerTurn
+                'currentTurn': playerTurn,
+                'msgType': "move"
             })
         );
     }
 
     function showMessageOutput(messageOutput) {
-        if (messageOutput.msgType = 'move') {
+        if (messageOutput.msgType == "move") {
             console.log("Message output from server: ");
             console.log("Board: " + messageOutput.board);
             console.log("Current Turn: " + messageOutput.currentTurn);
-            console.log("Moves: " + messageOutput.moves);
-            Board.playerTurn = messageOutput.playerTurn
-            Board.redraw(messageOutput);
-        }
-        else if (messageOutput.msgType = 'init') {
-            Board.team = messageOutput.team;
+            //Board.playerTurn = messageOutput.playerTurn
+            Board.redraw(messageOutput.board, messageOutput.currentTurn);
+        } else if (messageOutput.msgType == "init") {
+            console.log("Message output from server: ");
+            console.log("Team: " + messageOutput.team);
+            if (Board.team == -1) {
+                Board.team = messageOutput.team;
+            } else {
+                console.log("Fuck off");
+            }
         }
     }
 
     $(function() {
-        $( "#connect" ).on("click", function(Board) { connect() });
+        $( "#connect" ).on("click", function() { connect(); });
         $( "#disconnect" ).on("click", function() { disconnect() });
         $( "#testing" ).on("click", function() { sendMessage() });
     });
 
-    //select the piece on click if it is the player's turn
-    $('.piece').on("click", function () {
-        var selected;
-        var isPlayersTurn = ($(this).parent().attr("class").split(' ')[0] === "player" + Board.playerTurn + "pieces");
-        if(isPlayersTurn) {
-            if($(this).hasClass('selected')) {
-                selected = true;
-            }
-            $('.piece').each(function(index) {$('.piece').eq(index).removeClass('selected')});
-            if(!selected) {
-                $(this).addClass('selected');
-            }
-        }
-    });
-
     /*End of stomp stuff*/
-
-
 
 
 
@@ -317,7 +336,7 @@ window.onload = function() {
     $('.tile').on("click", function () {
         //make sure a piece is selected
         if($('.selected').length != 0) {
-            if (Board.playerTurn = Board.team) {
+            if (Board.playerTurn == Board.team) {
                 //find the tile object being clicked
                 var tileID = $(this).attr("id").replace(/tile/, '');
                 var tile = tiles[tileID];
@@ -327,24 +346,58 @@ window.onload = function() {
                 var inRange = tile.inRange(piece);
                 if (inRange) {
                     //if the move needed is jump, then move it but also check if another move can be made (double and triple jumps)
-                    if (inRange == 'jump') {
+                    if (inRange == "jump") {
                         if (piece.opponentJump(tile)) {
                             piece.move(tile);
                             if (piece.canJumpAny()) {
                                 //Board.changePlayerTurn(); //change back to original since another turn can be made
-                                piece.element.addClass('selected');
+                                piece.element.addClass("selected");
+                            } else {
+                                console.log("Sending next turn");
+                                if (Board.team == 1){
+                                    var otherTeam = 2;
+                                } else {
+                                    var otherTeam = 1;
+                                }
+                                sendTurn(Board.board, otherTeam);
                             }
                         }
                         //if it's regular then move it if no jumping is available
-                    } else if (inRange == 'regular') {
-                        if (!piece.canJumpAny()) {
-                            piece.move(tile);
-                        } else {
+                    } else if (inRange == "regular") {
+                        //if (!piece.canJumpAny()) {
+                            //piece.move(tile);
+                        /*} else {
                             alert("You must jump when possible!");
+                        }*/
+
+                        if (piece.move(tile)) {
+                            console.log("Sending next turn");
+                            if (Board.team == 1) {
+                                var otherTeam = 2;
+                            } else {
+                                var otherTeam = 1;
+                            }
+                            sendTurn(Board.board, otherTeam);
                         }
                     }
                 }
             }
         }
     });
+
+    //select the piece on click if it is the player's turn
+    $('.piece').on("click", function () {
+        var selected;
+        var isPlayersTurn = (Board.playerTurn === Board.team) && ($(this).parent().attr("class").split(' ')[0] === "player" + Board.playerTurn + "pieces");
+        if(isPlayersTurn) {
+            if($(this).hasClass('selected')) {
+                selected = true;
+            }
+            $('.piece').each(function(index) {$('.piece').eq(index).removeClass('selected')});
+            if(!selected) {
+                $(this).addClass('selected');
+            }
+        }
+    });
 };
+

@@ -1,22 +1,22 @@
 package com.cs451checkers.checkersgame.model;
 
-
+//Used to join the server
 public class Message {
-    private String content;
+    private String msgType;
 
     public Message() {
         //Apparently these are necessary for spring...
     }
 
-    public Message(String content) {
-        this.content = content;
+    public Message(String msgType) {
+        this.msgType = msgType;
     }
 
-    public String getContent() {
-        return content;
+    public String getMsgType() {
+        return msgType;
     }
 
-    public void setContent(String content) {
-        this.content = content;
+    public void setMsgType(String msgType) {
+        this.msgType = msgType;
     }
 }
