@@ -11,14 +11,17 @@ public class TestModel {
 
     private String msgType;
 
+    private int[] removedPieces;
+
     public TestModel() {
         //for spring
     }
 
-    public TestModel(int[][] board, int currentTurn) {
+    public TestModel(int[][] board, int currentTurn, int[] removedPieces) {
         this.board = board;
         this.currentTurn = currentTurn;
         this.msgType = "move";
+        this.removedPieces = removedPieces;
     }
 
     public int[][] getBoard() {
@@ -43,5 +46,13 @@ public class TestModel {
 
     public void setMsgType(String msgType) {
         this.msgType = msgType;
+    }
+
+    public int[] getRemovedPieces() {
+        return removedPieces;
+    }
+
+    public void setRemovedPieces(int[] removedPieces) {
+        this.removedPieces = removedPieces;
     }
 }

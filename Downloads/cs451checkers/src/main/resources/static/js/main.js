@@ -6,7 +6,7 @@ I think the biggest issue will be we just have to add spring and reloadable func
 
 window.onload = function() {
     //The initial setup
-    var gameBoard = [
+    /*var gameBoard = [
         [  0,  1,  0,  1,  0,  1,  0,  1 ],
         [  1,  0,  1,  0,  1,  0,  1,  0 ],
         [  0,  1,  0,  1,  0,  1,  0,  1 ],
@@ -15,30 +15,49 @@ window.onload = function() {
         [  2,  0,  2,  0,  2,  0,  2,  0 ],
         [  0,  2,  0,  2,  0,  2,  0,  2 ],
         [  2,  0,  2,  0,  2,  0,  2,  0 ]
+    ];*/
+    var gameBoard = [
+        [  0,  1,  0,  2,  0,  3,  0,  4 ],
+        [  5,  0,  6,  0,  7,  0,  8,  0 ],
+        [  0,  9,  0,  10,  0,  11,  0,  12 ],
+        [  0,  0,  0,  0,  0,  0,  0,  0 ],
+        [  0,  0,  0,  0,  0,  0,  0,  0 ],
+        [  13,  0,  14,  0,  15,  0,  16,  0 ],
+        [  0,  17,  0,  18,  0,  19,  0,  20 ],
+        [  21,  0,  22,  0,  23,  0,  24,  0 ]
     ];
+
+    /*var gameBoard = [
+        [  "0",  "1",  "0",  "2",  "0",  "3",  "0",  "4" ],
+        [  "5",  "0",  "6",  "0",  "7",  "0",  "8",  "0" ],
+        [  "0",  "9",  "0",  "10",  "0",  "11",  "0",  "12" ],
+        [  "0",  "0",  "0",  "0",  "0",  "0",  "0",  "0" ],
+        [  "0",  "0",  "0",  "0",  "0",  "0",  "0",  "0" ],
+        [  "13",  "0",  "14",  "0",  "15",  "0",  "16",  "0" ],
+        [  "0",  "17",  "0",  "18",  "0",  "19",  "0",  "20" ],
+        [  "21",  "0",  "22",  "0",  "23",  "0",  "24",  "0" ]
+    ];*/
     //arrays to store the instances
     var pieces = [];
     var tiles = [];
 
     //distance formula
-    var dist = function (x1, y1, x2, y2) {
+    var distance = function (x1, y1, x2, y2) {
         return Math.sqrt(Math.pow((x1-x2),2)+Math.pow((y1-y2),2));
     };
+
     //Piece object - there are 24 instances of them in a checkers game
-    function Piece (element, position) {
+    function Piece (element, position, player, id) {
         //linked DOM element
         this.element = element;
         //positions on gameBoard array in format row, column
         this.position = position;
         //which player's piece i it
-        this.player = '';
-        //figure out player by piece id
-        if(this.element.attr("id") < 12)
-            this.player = 1;
-        else
-            this.player = 2;
+        this.player = player;
+        this.id = id;
         //makes object a king
         this.king = false;
+        //TODO: have to remake object as king if king
         this.makeKing = function () {
             //this.element.css("backgroundImage", "url('king"+this.player+".png')");
             this.king = true;
@@ -61,7 +80,7 @@ window.onload = function() {
             }
             //remove the mark from Board.board and put it in the new spot
             Board.board[this.position[0]][this.position[1]] = 0;
-            Board.board[tile.position[0]][tile.position[1]] = this.player;
+            Board.board[tile.position[0]][tile.position[1]] = this.id;
             this.position = [tile.position[0], tile.position[1]];
             //change the css using board's dictionary
             this.element.css('top', Board.dictionary[this.position[0]]);
@@ -91,9 +110,13 @@ window.onload = function() {
             var dy = newPosition[0] - this.position[0];
             //make sure object doesn't go backwards if not a king
             if(this.player == 1 && this.king == false) {
-                if(newPosition[0] < this.position[0]) return false;
+                if(newPosition[0] < this.position[0]) {
+                    return false;
+                }
             } else if (this.player == 2 && this.king == false) {
-                if(newPosition[0] > this.position[0]) return false;
+                if(newPosition[0] > this.position[0]) {
+                    return false;
+                }
             }
             //must be in bounds
             if(newPosition[0] > 7 || newPosition[1] > 7 || newPosition[0] < 0 || newPosition[1] < 0) return false;
@@ -127,13 +150,17 @@ window.onload = function() {
 
         this.remove = function () {
             //remove it and delete it from the gameboard
-            //this.element.css("display", "none");
-            this.element.
-            if(this.player == 1) $('#player2').append("<div class='capturedPiece'></div>");
-            if(this.player == 2) $('#player1').append("<div class='capturedPiece'></div>");
+            this.element.css("display", "none");
+            if(this.player == 1) {
+                $('#player2').append("<div class='capturedPiece'></div>");
+            }
+            if(this.player == 2) {
+                $('#player1').append("<div class='capturedPiece'></div>");
+            }
             Board.board[this.position[0]][this.position[1]] = 0;
             //reset position so it doesn't get picked up by the for loop in the canOpponentJump method
             this.position = [];
+            Board.removedPieces.push(this.id);
         }
     }
 
@@ -144,10 +171,10 @@ window.onload = function() {
         this.position = position;
         //if tile is in range from the piece
         this.inRange = function(piece) {
-            if(dist(this.position[0], this.position[1], piece.position[0], piece.position[1]) == Math.sqrt(2)) {
+            if(distance(this.position[0], this.position[1], piece.position[0], piece.position[1]) == Math.sqrt(2)) {
                 //regular move
                 return 'regular';
-            } else if(dist(this.position[0], this.position[1], piece.position[0], piece.position[1]) == 2*Math.sqrt(2)) {
+            } else if(distance(this.position[0], this.position[1], piece.position[0], piece.position[1]) == 2*Math.sqrt(2)) {
                 //jump move
                 return 'jump';
             }
@@ -162,6 +189,7 @@ window.onload = function() {
         tilesElement: $('div.tiles'),
         //dictionary to convert position in Board.board to the viewport units
         dictionary: ["0vmin", "10vmin", "20vmin", "30vmin", "40vmin", "50vmin", "60vmin", "70vmin", "80vmin", "90vmin"],
+        removedPieces: [],
         //initialize the 8x8 board
         initalize: function () {
             var countPieces = 0;
@@ -182,36 +210,53 @@ window.onload = function() {
                             countTiles += 1;
                         }
                     }
-                    if(this.board[row][column] == 1) {
+                    /*if(this.board[row][column] == 1) {
                         $('.player1pieces').append("<div class='piece' id='"+countPieces+"' style='top:"+this.dictionary[row]+";left:"+this.dictionary[column]+";'></div>");
-                        pieces[countPieces] = new Piece($("#"+countPieces), [parseInt(row), parseInt(column)]);
+                        pieces[countPieces] = new Piece($("#"+countPieces), [parseInt(row), parseInt(column)], 1, countPieces + 1);
                         countPieces += 1;
                     } else if(this.board[row][column] == 2) {
                         $('.player2pieces').append("<div class='piece' id='"+countPieces+"' style='top:"+this.dictionary[row]+";left:"+this.dictionary[column]+";'></div>");
-                        pieces[countPieces] = new Piece($("#"+countPieces), [parseInt(row), parseInt(column)]);
+                        pieces[countPieces] = new Piece($("#"+countPieces), [parseInt(row), parseInt(column)], 2, countPieces + 1);
+                        countPieces += 1;
+                    }*/
+                    if(this.board[row][column] != 0 && row < 3) {
+                        $('.player1pieces').append("<div class='piece' id='"+countPieces+"' style='top:"+this.dictionary[row]+";left:"+this.dictionary[column]+";'></div>");
+                        pieces[countPieces] = new Piece($("#"+countPieces), [parseInt(row), parseInt(column)], 1, countPieces + 1);
+                        countPieces += 1;
+                    } else if(this.board[row][column] != 0 && row > 4) {
+                        $('.player2pieces').append("<div class='piece' id='"+countPieces+"' style='top:"+this.dictionary[row]+";left:"+this.dictionary[column]+";'></div>");
+                        pieces[countPieces] = new Piece($("#"+countPieces), [parseInt(row), parseInt(column)], 2, countPieces + 1);
                         countPieces += 1;
                     }
                 }
             }
         },
         drawBoard: function() {
-            var pieceCount = 0;
+            var countPieces = 0;
             pieces.forEach( function(piece) {
                 piece.element.css("display", "none");
             });
-            pieces = [];
             $('.player1pieces').html("");
             $('.player2pieces').html("");
             for (row in this.board) { //row is the index
                 for (column in this.board[row]) { //column is the index
-                    if(this.board[row][column] == 1) {
-                        $('.player1pieces').append("<div class='piece' id='"+pieceCount+"' style='top:"+this.dictionary[row]+";left:"+this.dictionary[column]+";'></div>");
-                        pieces[pieceCount] = new Piece($("#"+pieceCount), [parseInt(row), parseInt(column)]);
-                        pieceCount += 1;
-                    } else if(this.board[row][column] == 2) {
-                        $('.player2pieces').append("<div class='piece' id='"+pieceCount+"' style='top:"+this.dictionary[row]+";left:"+this.dictionary[column]+";'></div>");
-                        pieces[pieceCount] = new Piece($("#"+pieceCount), [parseInt(row), parseInt(column)]);
-                        pieceCount += 1;
+                    /*if(this.board[row][column] != 0 && pieces[countPieces].player == 1) {
+                        $('.player1pieces').append("<div class='piece' id='"+countPieces+"' style='top:"+this.dictionary[row]+";left:"+this.dictionary[column]+";'></div>");
+                        pieces[countPieces] = new Piece($("#"+countPieces), [parseInt(row), parseInt(column)], 1, countPieces + 1);
+                        countPieces += 1;
+                    } else if(this.board[row][column] != 0 && pieces[countPieces].player == 2) {
+                        $('.player2pieces').append("<div class='piece' id='"+countPieces+"' style='top:"+this.dictionary[row]+";left:"+this.dictionary[column]+";'></div>");
+                        pieces[countPieces] = new Piece($("#"+countPieces), [parseInt(row), parseInt(column)], 2, countPieces + 1);
+                        countPieces += 1;
+                    }*/
+                    if (this.board[row][column] != 0 && this.board[row][column] < 13) {
+                        $('.player1pieces').append("<div class='piece' id='"+countPieces+"' style='top:"+this.dictionary[row]+";left:"+this.dictionary[column]+";'></div>");
+                        pieces[countPieces] = new Piece($("#"+countPieces), [parseInt(row), parseInt(column)], 1, this.board[row][column]);
+                        countPieces += 1;
+                    } else if (this.board[row][column] != 0 && this.board[row][column] >= 13) {
+                        $('.player2pieces').append("<div class='piece' id='"+countPieces+"' style='top:"+this.dictionary[row]+";left:"+this.dictionary[column]+";'></div>");
+                        pieces[countPieces] = new Piece($("#"+countPieces), [parseInt(row), parseInt(column)], 2, this.board[row][column]);
+                        countPieces += 1;
                     }
                 }
             }
@@ -229,6 +274,14 @@ window.onload = function() {
                     }
                 }
             });
+
+
+            pieces.forEach( function(piece) {
+                if (this.removedPieces !== undefined && this.removedPieces.includes(piece.id)) {
+                    $("#" + (piece.id - 1)).off("click");
+                    $("#" + (piece.id - 1)).html("");
+                }
+            })
         },
         //check if the location has an object
         isValidPlacetoMove: function (row, column) {
@@ -245,9 +298,10 @@ window.onload = function() {
         clear: function () {
             location.reload();
         },
-        redraw: function(newBoardstate, newTurn) {
+        redraw: function(newBoardstate, newTurn, removedPieces) {
             this.board = newBoardstate;
             this.playerTurn = newTurn;
+            this.removedPieces = removedPieces;
             this.drawBoard();
         }
     };
@@ -288,11 +342,12 @@ window.onload = function() {
         console.log("Disconnected");
     }
 
-    function sendTurn(board, playerTurn) {
+    function sendTurn(board, playerTurn, removedPieces) {
         stompClient.send("/checkers/processturn", {},
             JSON.stringify({
                 'board': board,
                 'currentTurn': playerTurn,
+                'removedPieces': removedPieces,
                 'msgType': "move"
             })
         );
@@ -303,8 +358,9 @@ window.onload = function() {
             console.log("Message output from server: ");
             console.log("Board: " + messageOutput.board);
             console.log("Current Turn: " + messageOutput.currentTurn);
+            console.log("Removed pieces: " + messageOutput.removedPieces);
             //Board.playerTurn = messageOutput.playerTurn
-            Board.redraw(messageOutput.board, messageOutput.currentTurn);
+            Board.redraw(messageOutput.board, messageOutput.currentTurn, messageOutput.removedPieces);
         } else if (messageOutput.msgType == "init") {
             console.log("Message output from server: ");
             console.log("Team: " + messageOutput.team);
@@ -359,7 +415,7 @@ window.onload = function() {
                                 } else {
                                     var otherTeam = 1;
                                 }
-                                sendTurn(Board.board, otherTeam);
+                                sendTurn(Board.board, otherTeam, Board.removedPieces);
                             }
                         }
                         //if it's regular then move it if no jumping is available
@@ -377,7 +433,7 @@ window.onload = function() {
                             } else {
                                 var otherTeam = 1;
                             }
-                            sendTurn(Board.board, otherTeam);
+                            sendTurn(Board.board, otherTeam, Board.removedPieces);
                         }
                     }
                 }
