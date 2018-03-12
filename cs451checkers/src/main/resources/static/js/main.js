@@ -1,486 +1,703 @@
-/*
-HEAVILY RELIES ON THIS GUY'S IMPLEMENTATION: https://github.com/codethejason/checkers
-I'm going to change names and some functionality, but it's unlikely a lot of it will change.
-I think the biggest issue will be we just have to add spring and reloadable functionality.
-*/
+var stompClient = null;
 
-window.onload = function() {
-    //The initial setup
-    /*var gameBoard = [
-        [  0,  1,  0,  1,  0,  1,  0,  1 ],
-        [  1,  0,  1,  0,  1,  0,  1,  0 ],
-        [  0,  1,  0,  1,  0,  1,  0,  1 ],
-        [  0,  0,  0,  0,  0,  0,  0,  0 ],
-        [  0,  0,  0,  0,  0,  0,  0,  0 ],
-        [  2,  0,  2,  0,  2,  0,  2,  0 ],
-        [  0,  2,  0,  2,  0,  2,  0,  2 ],
-        [  2,  0,  2,  0,  2,  0,  2,  0 ]
-    ];*/
-    var gameBoard = [
-        [  0,  1,  0,  2,  0,  3,  0,  4 ],
-        [  5,  0,  6,  0,  7,  0,  8,  0 ],
-        [  0,  9,  0,  10,  0,  11,  0,  12 ],
-        [  0,  0,  0,  0,  0,  0,  0,  0 ],
-        [  0,  0,  0,  0,  0,  0,  0,  0 ],
-        [  13,  0,  14,  0,  15,  0,  16,  0 ],
-        [  0,  17,  0,  18,  0,  19,  0,  20 ],
-        [  21,  0,  22,  0,  23,  0,  24,  0 ]
-    ];
-
-    /*var gameBoard = [
-        [  "0",  "1",  "0",  "2",  "0",  "3",  "0",  "4" ],
-        [  "5",  "0",  "6",  "0",  "7",  "0",  "8",  "0" ],
-        [  "0",  "9",  "0",  "10",  "0",  "11",  "0",  "12" ],
-        [  "0",  "0",  "0",  "0",  "0",  "0",  "0",  "0" ],
-        [  "0",  "0",  "0",  "0",  "0",  "0",  "0",  "0" ],
-        [  "13",  "0",  "14",  "0",  "15",  "0",  "16",  "0" ],
-        [  "0",  "17",  "0",  "18",  "0",  "19",  "0",  "20" ],
-        [  "21",  "0",  "22",  "0",  "23",  "0",  "24",  "0" ]
-    ];*/
-    //arrays to store the instances
-    var pieces = [];
-    var tiles = [];
-
-    //distance formula
-    var distance = function (x1, y1, x2, y2) {
-        return Math.sqrt(Math.pow((x1-x2),2)+Math.pow((y1-y2),2));
-    };
-
-    //Piece object - there are 24 instances of them in a checkers game
-    function Piece (element, position, player, id) {
-        //linked DOM element
-        this.element = element;
-
-        //positions in board state in array form: [row, column]
-        this.position = position;
-
-        //owner of the piece 1 for red, 2 for black
-        this.player = player;
-
-        //Unique id to each checker piece, used for redrawing the board properly...hacky?
-        this.id = id;
-
-        //Whether piece is a king or not
-        this.king = false;
-
-        //Makes piece a king
-        this.makeKing = function () {
-            //TODO: change visuals for king
-            //this.element.css("backgroundImage", "url('king"+this.player+".png')");
-            this.king = true;
-            if (!Board.kingedPieces.includes(this.id)) {
-                Board.kingedPieces.push(this.id);
-            }
-            return true;
-        };
-
-        //moves the piece
-        this.move = function (tile) {
-            this.element.removeClass('selected');
-            if(!Board.isValidPlacetoMove(tile.position[0], tile.position[1])) {
-                return false;
-            }
-            //make sure piece doesn't go backwards if it's not a king
-            if(this.player === 1 && this.king === false) {
-                if (tile.position[0] < this.position[0]) {
-                    console.log("Going backwards for red");
-                    return false;
-                }
-            } else if (this.player === 2 && this.king === false) {
-                if (tile.position[0] > this.position[0]) {
-                    console.log("Going backwards for black");
-                    return false;
-                }
-            }
-
-            //remove the piece from board state and put it in the new spot
-            Board.board[this.position[0]][this.position[1]] = 0;
-            Board.board[tile.position[0]][tile.position[1]] = this.id;
-
-            //Set new position
-            this.position = [tile.position[0], tile.position[1]];
-
-            //change the css using board's dictionary of pieces
-            this.element.css('top', Board.dictionary[this.position[0]]);
-            this.element.css('left', Board.dictionary[this.position[1]]);
-            //if piece reaches the end of the row on opposite side crown it a king (can move all directions)
-            if(!this.king && (this.position[0] === 0 || this.position[0] === 7 )) {
-                this.makeKing();
-            }
-            return true;
-        };
-
-        //Tests is piece can jump in any direction from its current location
-        this.canJump = function () {
-            if (this.canOpponentJump([this.position[0]+2, this.position[1]+2]) ||
-                this.canOpponentJump([this.position[0]+2, this.position[1]-2]) ||
-                this.canOpponentJump([this.position[0]-2, this.position[1]+2]) ||
-                this.canOpponentJump([this.position[0]-2, this.position[1]-2])) {
-                return true;
-            } else {
-                return false;
-            }
-        };
-
-        //Tests if jump can be performed
-        this.canOpponentJump = function(newPosition) {
-            //Calculate what the displacement is
-            var dx = newPosition[1] - this.position[1];
-            var dy = newPosition[0] - this.position[0];
-            //make sure object doesn't go backwards if not a king
-            if (this.player === 1 && this.king === false) {
-                if (newPosition[0] < this.position[0]) {
-                    return false;
-                }
-            } else if (this.player === 2 && this.king === false) {
-                if (newPosition[0] > this.position[0]) {
-                    return false;
-                }
-            }
-            //must be in bounds of board
-            if (newPosition[0] > 7 || newPosition[1] > 7 || newPosition[0] < 0 || newPosition[1] < 0) {
-                return false;
-            }
-
-            //middle tile where the piece to be jumped sits
-            var tileToCheckX = this.position[1] + dx/2;
-            var tileToCheckY = this.position[0] + dy/2;
-            //Check if there is a piece to be jumped, and no piece on landing tile
-            if(!Board.isValidPlacetoMove(tileToCheckY, tileToCheckX) && Board.isValidPlacetoMove(newPosition[0], newPosition[1])) {
-                //find which object instance is sitting there
-                for(pieceIndex in pieces) {
-                    if(pieces[pieceIndex].position[0] === tileToCheckY && pieces[pieceIndex].position[1] === tileToCheckX) {
-                        if(this.player !== pieces[pieceIndex].player) {
-                            //return the piece sitting there
-                            return pieces[pieceIndex];
-                        }
-                    }
-                }
-            }
-            return false;
-        };
-
-        this.opponentJump = function (tile) {
-            var pieceToRemove = this.canOpponentJump(tile.position);
-            //if there is a piece to be removed, remove it
-            if(pieceToRemove) {
-                //Javascript magic allows for you to use this even though it's from elsewhere? Sure.
-                pieces[pieceIndex].remove();
-                return true;
-            }
-            return false;
-        };
-
-        this.remove = function () {
-            //hide piece
-            this.element.css("display", "none");
-
-            //TODO:　Probably remove this
-            if(this.player === 1) {
-                $('#player2').append("<div class='capturedPiece'></div>");
-            }
-            if(this.player === 2) {
-                $('#player1').append("<div class='capturedPiece'></div>");
-            }
-            //Set board state to not have this piece
-            Board.board[this.position[0]][this.position[1]] = 0;
-            this.position = [];
-
-            //Add it to removed pieces list.
-            //TODO: consider making this stateful so that the clients don't have to deal with this kind of validation
-            Board.removedPieces.push(this.id);
-        }
-    }
-
-    function Tile (element, position) {
-        //linked DOM element
-        this.element = element;
-
-        //position in board state
-        this.position = position;
-
-        //if tile is in range from the piece
-        this.isInRangeOfTile = function(piece) {
-            if(distance(this.position[0], this.position[1], piece.position[0], piece.position[1]) === Math.sqrt(2)) {
-                //regular move
-                return 'regular';
-            } else if(distance(this.position[0], this.position[1], piece.position[0], piece.position[1]) === 2*Math.sqrt(2)) {
-                //jump move
-                return 'jump';
-            }
-        };
-    }
-
-    //Board object - controls logistics of game
-    var Board = {
-        //the board state
-        board: gameBoard,
-        //Who's turn it currently is.  Changes based on values receieved from server
-        playerTurn: 1,
-        //Set by initial ack received from server.  1 for red, 2 for black
-        team: -1,
-        //Winning team is set by message
-        winningTeam: -1,
-        //The list of tiles
-        tilesElement: $('div.tiles'),
-        //dictionary to convert position in Board.board to the viewport units
-        dictionary: ["0vmin", "10vmin", "20vmin", "30vmin", "40vmin", "50vmin", "60vmin", "70vmin", "80vmin", "90vmin"],
-        //These feel bad, but that's part of the problem with maintaining state client side.
-        removedPieces: [],
-        kingedPieces: [],
-        //initialize the board
-        initalize: function () {
-            var pieceCount = 0;
-            var tileCount = 0;
-            for (row in this.board) { //row is the index
-                for (column in this.board[row]) { //column is the index
-
-                    //Creates tiles for the board.
-                    if((row % 2) === 1) {
-                        if((column % 2) === 0) {
-                            this.tilesElement.append("<div class='tile' id='tile" + tileCount + "' style='top:" + this.dictionary[row] + ";left:" + this.dictionary[column] + ";'></div>");
-                            tiles[tileCount] = new Tile($("#tile" + tileCount), [parseInt(row), parseInt(column)]);
-                            tileCount += 1;
-                        }
-                    } else {
-                        if((column % 2) === 1) {
-                            this.tilesElement.append("<div class='tile' id='tile" + tileCount + "' style='top:" + this.dictionary[row] + ";left:" + this.dictionary[column] + ";'></div>");
-                            tiles[tileCount] = new Tile($("#tile" + tileCount), [parseInt(row), parseInt(column)]);
-                            tileCount += 1;
-                        }
-                    }
-
-                    //Generate pieces with ids to match the initial board state above.
-                    if(this.board[row][column] !== 0 && row < 3) {
-                        $('.player1pieces').append("<div class='piece' id='" + pieceCount + "' style='top:" + this.dictionary[row] + ";left:" + this.dictionary[column] + ";'></div>");
-                        pieces[pieceCount] = new Piece($("#" + pieceCount), [parseInt(row), parseInt(column)], 1, pieceCount + 1);
-                        pieceCount += 1;
-                    } else if(this.board[row][column] !== 0 && row > 4) {
-                        $('.player2pieces').append("<div class='piece' id='" + pieceCount + "' style='top:" + this.dictionary[row] + ";left:" + this.dictionary[column] + ";'></div>");
-                        pieces[pieceCount] = new Piece($("#" + pieceCount), [parseInt(row), parseInt(column)], 2, pieceCount + 1);
-                        pieceCount += 1;
-                    }
-                }
-            }
-        },
-        drawBoard: function() {
-            var pieceCount = 0;
-
-            //Remove each piece
-            pieces.forEach( function(piece) {
-                piece.element.css("display", "none");
-            });
-
-            //Clear the divs which had pieces in them before
-            $('.player1pieces').html("");
-            $('.player2pieces').html("");
-
-            //Generate a new board based on the new state from the server
-            for (row in this.board) { //row is the index
-                for (column in this.board[row]) { //column is the index
-                    //Keep unique id the same, keep div id the same.  This way board can be redrawn
-                    if (this.board[row][column] !== 0 && this.board[row][column] < 13) {
-                        $('.player1pieces').append("<div class='piece' id='" + pieceCount + "' style='top:" + this.dictionary[row] + ";left:" + this.dictionary[column] + ";'></div>");
-                        pieces[pieceCount] = new Piece($("#" + pieceCount), [parseInt(row), parseInt(column)], 1, this.board[row][column]);
-                        pieceCount += 1;
-                    } else if (this.board[row][column] !== 0 && this.board[row][column] >= 13) {
-                        $('.player2pieces').append("<div class='piece' id='" + pieceCount + "' style='top:" + this.dictionary[row] + ";left:" + this.dictionary[column] + ";'></div>");
-                        pieces[pieceCount] = new Piece($("#" + pieceCount), [parseInt(row), parseInt(column)], 2, this.board[row][column]);
-                        shouldKing = false;
-                        pieceCount += 1;
-                    }
-                }
-            }
-
-            //Reset listeners, since after being removed this needs to be set again
-            $('.piece').on("click", function () {
-                var selected;
-                var isPlayersTurn = (Board.playerTurn === Board.team) && ($(this).parent().attr("class") === "player" + Board.playerTurn + "pieces");
-                if(isPlayersTurn) {
-                    if($(this).hasClass('selected')) {
-                        selected = true;
-                    }
-                    $('.piece').each(function(index) {$('.piece').eq(index).removeClass('selected')});
-                    if(!selected) {
-                        $(this).addClass('selected');
-                    }
-                }
-            });
-    
-            pieces.forEach( function(piece) {
-                if (Board.removedPieces !== undefined && Board.removedPieces.includes(piece.id)) {
-                    $("#" + (piece.id - 1)).off("click");
-                    $("#" + (piece.id - 1)).html("");
-                }
-                if(Board.kingedPieces !== undefined && Board.kingedPieces.includes(piece.id)) {
-                    piece.makeKing();
-                }
-            });
-        },
-        //check if the location has an object
-        isValidPlacetoMove: function (row, column) {
-            return this.board[row][column] === 0;
-        },
-        //reset the game
-        clear: function () {
-            location.reload();
-        },
-        redraw: function(newBoardstate, newTurn, removedPieces, kingedPieces) {
-            this.board = newBoardstate;
-            this.playerTurn = newTurn;
-            this.removedPieces = removedPieces;
-            this.kingedPieces = kingedPieces;
-            this.drawBoard();
-        }
-    };
-
-    //initialize the board
-    Board.initalize();
-
-
-    //STOMP STUFF
-    //TODO: IT IS QUESTIONABLE WHETHER THIS SHOULD BE HERE
-    var stompClient = null;
-
-    function connect() {
-        var socket = new SockJS('/checkers-ws');
-        stompClient = Stomp.over(socket);
-        stompClient.connect({}, function(frame) {
-            console.log('Connected: ' + frame);
-            stompClient.subscribe('/game/init', function(messageOutput) {
-                showMessageOutput(JSON.parse(messageOutput.body));
-            });
-            sendInit();
+function connect() {
+    var socket = new SockJS('/checkers-ws');
+    stompClient = Stomp.over(socket);
+    stompClient.connect({}, function(frame) {
+        console.log('Connected: ' + frame);
+        stompClient.subscribe('/game/init', function(messageOutput) {
+            showMessageOutput(JSON.parse(messageOutput.body));
         });
-    }
+        sendInit();
+    });
+}
 
-    function sendInit() {
-        stompClient.send("/checkers/join", {},
-            JSON.stringify({
-                'msgType': "join",
-                'team': -1
-            })
-        );
-    }
+function sendInit() {
+    stompClient.send("/checkers/join", {},
+        JSON.stringify({
+            'msgType': "join",
+            'team': -1
+        })
+    );
+}
 
-    function disconnect() {
-        if(stompClient != null) {
-            stompClient.disconnect();
-        }
-        console.log("Disconnected");
+function disconnect() {
+    if(stompClient !== null) {
+        stompClient.disconnect();
     }
+    console.log("Disconnected");
+}
 
-    function sendTurn(board, playerTurn, removedPieces, kingedPieces) {
-        stompClient.send("/checkers/processturn", {},
-            JSON.stringify({
-                'board': board,
-                'currentTurn': playerTurn,
-                'removedPieces': removedPieces,
-                'kingedPieces': kingedPieces,
-                'msgType': "move"
-            })
-        );
-    }
+function sendTurn(boardstate, playerTurn) {
+    stompClient.send("/checkers/processturn", {},
+        JSON.stringify({
+            'board': boardstate,
+            'currentTurn': playerTurn,
+            'msgType': "move"
+        })
+    );
+}
 
-    function showMessageOutput(messageOutput) {
-        if (messageOutput.msgType === "move") {
-            console.log("Message output from server: ");
-            console.log("Board: " + messageOutput.board);
-            console.log("Current Turn: " + messageOutput.currentTurn);
-            console.log("Removed pieces: " + messageOutput.removedPieces);
-            console.log("Kinged pieces: " + messageOutput.kingedPieces);
-            Board.redraw(messageOutput.board, messageOutput.currentTurn, messageOutput.removedPieces, messageOutput.kingedPieces);
-        } else if (messageOutput.msgType === "init") {
-            console.log("Message output from server: ");
-            console.log("Team: " + messageOutput.team);
-            if (Board.team === -1) {
-                Board.team = messageOutput.team;
-            } else {
-                console.log("Fuck off");
-            }
-        } else if (messageOutput.msgType === "win") {
-            Board.winningTeam = messageOutput.team;
+function showMessageOutput(messageOutput) {
+    if (messageOutput.msgType === "move") {
+        console.log("Message output from server: ");
+        console.log("Board: " + messageOutput.board);
+        console.log("Current Turn: " + messageOutput.currentTurn);
+        redraw(messageOutput.board, messageOutput.currentTurn);
+    } else if (messageOutput.msgType === "init") {
+        console.log("Message output from server: ");
+        console.log("Team: " + messageOutput.team);
+        if (team === -1) {
+            team = messageOutput.team;
         }
     }
+}
 
-    $(function() {
-        $( "#connect" ).on("click", function() { connect(); });
-        $( "#disconnect" ).on("click", function() { disconnect() });
-        $( "#testing" ).on("click", function() { sendMessage() });
-    });
+var team = -1;
 
-    /*End of stomp stuff*/
+function redraw(newBoardstate, playerTurn) {
+    currentPlayersTurn = playerTurn;
+    boardstate = newBoardstate;
+    drawBoard();
+}
+
+//websocket variables
+var boardstate = [
+    [0, 1, 0, 1, 0, 1, 0, 1],
+    [1, 0, 1, 0, 1, 0, 1, 0],
+    [0, 1, 0, 1, 0, 1, 0, 1],
+    [9, 0, 9, 0, 9, 0, 9, 0],
+    [0, 9, 0, 9, 0, 9, 0, 9],
+    [2, 0, 2, 0, 2, 0, 2, 0],
+    [0, 2, 0, 2, 0, 2, 0, 2],
+    [2, 0, 2, 0, 2, 0, 2, 0]
+];
+var isEndGame = false;
+var currentPlayersTurn = 1;
+
+//local
+var selectedRow, selectedCol;
+var isStillTurn = false;
+var endTurn = false;
+var hasJumped = false;
+var hasAnotherLegalMove = false;
+var moved = false;
+var blackNum;
+var redNum;
+
+//FINAL values, essentially key for comparison/change-positions (do not change values)
+var RED_NORMAL = 1;
+var BLACK_NORMAL = 2;
+var RED_KING = 3;
+var BLACK_KING = 4;
+var RED_SELECTED = 5;
+var BLACK_SELECTED = 6;
+var RED_KING_SELECTED = 7;
+var BLACK_KING_SELECTED = 8;
+var EMPTY_SPACE = 9;
+
+var RED_KING_LINE = 7;
+var BLACK_KING_LINE = 0;
+var MIN = 0;
+var MAX = 7;
+
+function drawSquare(row, col){
+	var state = boardstate[row][col];
+	if(state > 0){
+		//creates button and all css attributes
+
+		var $button = $('<button/>', {
+					// class: "square1",
+			        click: function () { touch(row, col); }
+			    });
+		var left = col*100;
+		var top = row*100;
+		//css
+		$button.css("position", "absolute");
+		$button.css("outline", "none");
+		$button.css("left", left);
+		$button.css("top", top);
+		$button.css("width", "100px");
+		$button.css("height", "100px");
+		$button.css("background-color", "#BA7A3A");
+
+		//determines if piece exist, 3 sentinal value
+		var blackChecker;
+		if(state === RED_KING){  //kinged red
+			blackChecker = '<div class="checkerRedKing"></div>';
+		} else if (state === BLACK_KING){
+			blackChecker = '<div class="checkerBlackKing"></div>';
+		} else if(state === RED_SELECTED || state === RED_KING_SELECTED){
+			blackChecker = '<div class="checkerRedSelected"></div>';
+		} else if(state === BLACK_SELECTED || state === BLACK_KING_SELECTED) {
+			blackChecker = '<div class="checkerBlackSelected"></div>';
+		} else if(state === RED_NORMAL){
+			blackChecker = '<div class="checkerRed"></div>';
+		} else if(state === BLACK_NORMAL) {
+			blackChecker = '<div class="checkerBlack"></div>';
+		}
+		$button.html(blackChecker);
+
+		//smacks it onto board
+		$(".board").append($button);
+	}
+}
+
+function drawBoard(){
+	$(".board").removeClass("hidden");
+	$("#username-page").addClass("hidden");
+	//actual checker board
+	for(var col = 0; col < boardstate.length; col++){
+		for(var row = 0; row < boardstate[col].length; row++){
+			drawSquare(col, row);
+		}
+	}
+
+	//display around board
+	var currentTurn = (currentPlayersTurn === 1 ? "Player One" : "Player Two")
+	$(".display").html('Current Turn: ' + currentTurn);
+	var bgColor = (currentPlayersTurn === 1 ? "#cc0000" : "#111111")
+	$("body").css("background-color", bgColor);
+	endGame();
+}
+
+
+function changePlayersTurn(){
+	selectedCol = null;
+	selectedRow = null;
+	if(currentPlayersTurn === 1){
+		currentPlayersTurn = 2;
+	} else {
+		currentPlayersTurn = 1;
+	}
+	deSelectAllPieces();
+}
+
+function endGame(){
+	blackNum = 0;
+	redNum = 0;
+	for(var col = 0; col < boardstate.length; col++){
+		for(var row = 0; row < boardstate[col].length; row++){
+			if(boardstate[row][col] === RED_KING || boardstate[row][col] === RED_KING_SELECTED ||
+					boardstate[row][col] === RED_NORMAL || boardstate[row][col] === RED_SELECTED ){
+				redNum++;
+			} else if (boardstate[row][col] === BLACK_KING || boardstate[row][col] === BLACK_KING_SELECTED ||
+					boardstate[row][col] === BLACK_NORMAL || boardstate[row][col] === BLACK_SELECTED ){
+				blackNum++;
+			}
+		}
+	}
+
+	if(blackNum === 0){
+		$(".display").html("Player One Wins!");
+		$("body").css("background-color", "#cc0000");
+		isEndGame = true;
+	} else if(redNum === 0){
+		$(".display").html("Player Two Wins!");
+		$("body").css("background-color", "#111111");
+		isEndGame = true;
+	}
+}
+
+function findSelectedExist(){
+	for(var col = 0; col < boardstate.length; col++){
+		for(var row = 0; row < boardstate[col].length; row++){
+			if(boardstate[row][col] === BLACK_KING_SELECTED){
+				return true;
+			} else if(boardstate[row][col] === BLACK_SELECTED){
+				return true;
+			} else if(boardstate[row][col] === RED_KING_SELECTED){
+				return true;
+			} else if(boardstate[row][col] === RED_SELECTED){
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+function deSelectAllPieces(){
+	for(var col = 0; col < boardstate.length; col++){
+		for(var row = 0; row < boardstate[col].length; row++){
+			if(boardstate[row][col] === BLACK_KING_SELECTED){
+				boardstate[row][col] = BLACK_KING;
+			} else if(boardstate[row][col] === BLACK_SELECTED){
+				boardstate[row][col] = BLACK_NORMAL;
+			} else if(boardstate[row][col] === RED_KING_SELECTED){
+				boardstate[row][col] = RED_KING;
+			} else if(boardstate[row][col] === RED_SELECTED){
+				boardstate[row][col] = RED_NORMAL;
+			}
+		}
+	}
+}
 
 
 
-    //reset game when clear button is pressed
-    //TODO: yeah sure, but we're going to have to fix the menu location and stuff.
-    $('#cleargame').on("click", function () {
-        Board.clear();
-    });
+//checking relative to the parameter row and col. This function is dependent to selectedRow and selectCol, they must be set.
+function isLegalMove(row, col){
+	var out = false;
+	if(boardstate[row][col] === EMPTY_SPACE){
+		if( boardstate[selectedRow][selectedCol] === RED_KING_SELECTED){
+			if((selectedRow + 1) === row && (selectedCol + 1) === col){
+				//bottom right
+				out = true;
+				pieceMove(row, col, RED_KING);
+			} else if((selectedRow + 1) === row && (selectedCol - 1) === col){
+				//bottom left
+				out = true;
+				pieceMove(row, col, RED_KING);
+			} else if((selectedRow - 1) === row && (selectedCol + 1) === col){
+				//top right
+				out = true;
+				pieceMove(row, col, RED_KING);
+			} else if ((selectedRow - 1) === row && (selectedCol - 1) === col){
+				//top left
+				out = true;
+				pieceMove(row, col, RED_KING);
+			} else if( (selectedRow + 2) === row && (selectedCol + 2) === col &&
+						(boardstate[selectedRow + 1][selectedCol + 1] === BLACK_NORMAL ||
+							boardstate[selectedRow + 1][selectedCol + 1] === BLACK_KING) ) {
+				//bottom right jump red piece
+				out = true;
+				pieceJump(row, col, selectedRow + 1, selectedCol + 1, RED_KING);
+			} else if((selectedRow + 2) === row && (selectedCol - 2) === col &&
+						(boardstate[selectedRow + 1][selectedCol - 1] === BLACK_NORMAL ||
+							boardstate[selectedRow + 1][selectedCol - 1] === BLACK_KING)){
+				//bottom left jump red piece
+				out = true;
+				pieceJump(row, col, selectedRow + 1, selectedCol - 1, RED_KING);
+			} else if( (selectedRow - 2) === row && (selectedCol + 2) === col &&
+						(boardstate[selectedRow - 1][selectedCol + 1] === BLACK_NORMAL ||
+							boardstate[selectedRow - 1][selectedCol + 1] === BLACK_KING) ) {
+				//top right jump red piece
+				out = true;
+				pieceJump(row, col, selectedRow - 1, selectedCol + 1, RED_KING);
+			} else if((selectedRow - 2) === row && (selectedCol - 2) === col &&
+						(boardstate[selectedRow - 1][selectedCol - 1] === BLACK_NORMAL ||
+							boardstate[selectedRow - 1][selectedCol - 1] === BLACK_KING)){
+				//top left jump red piece
+				out = true;
+				pieceJump(row, col, selectedRow - 1, selectedCol - 1, RED_KING);
+			}
+		} else if( boardstate[selectedRow][selectedCol] === BLACK_KING_SELECTED){
+			if((selectedRow + 1) === row && (selectedCol + 1) === col){
+				//bottom right
+				out = true;
+				pieceMove(row, col, BLACK_KING);
+			} else if((selectedRow + 1) === row && (selectedCol - 1) === col){
+				//bottom left
+				out = true;
+				pieceMove(row, col, BLACK_KING);
+			} else if((selectedRow - 1) === row && (selectedCol + 1) === col){
+				//top right
+				out = true;
+				pieceMove(row, col, BLACK_KING);
+			} else if ((selectedRow - 1) === row && (selectedCol - 1) === col){
+				//top left
+				out = true;
+				pieceMove(row, col, BLACK_KING);
+			} else if( (selectedRow + 2) === row && (selectedCol + 2) === col &&
+						(boardstate[selectedRow + 1][selectedCol + 1] === RED_NORMAL ||
+							boardstate[selectedRow + 1][selectedCol + 1] === RED_KING) ) {
+				//bottom right jump red piece
+				out = true;
+				pieceJump(row, col, selectedRow + 1, selectedCol + 1, BLACK_KING);
+			} else if((selectedRow + 2) === row && (selectedCol - 2) === col &&
+						(boardstate[selectedRow + 1][selectedCol - 1] === RED_NORMAL ||
+							boardstate[selectedRow + 1][selectedCol - 1] === RED_KING)){
+				//bottom left jump red piece
+				out = true;
+				pieceJump(row, col, selectedRow + 1, selectedCol - 1, BLACK_KING);
+			} else if( (selectedRow - 2) === row && (selectedCol + 2) === col &&
+						(boardstate[selectedRow - 1][selectedCol + 1] === RED_NORMAL ||
+							boardstate[selectedRow - 1][selectedCol + 1] === RED_KING) ) {
+				//top right jump red piece
+				out = true;
+				pieceJump(row, col, selectedRow - 1, selectedCol + 1, BLACK_KING);
+			} else if((selectedRow - 2) === row && (selectedCol - 2) === col &&
+						(boardstate[selectedRow - 1][selectedCol - 1] === RED_NORMAL ||
+							boardstate[selectedRow - 1][selectedCol - 1] === RED_KING)){
+				//top left jump red piece
+				out = true;
+				pieceJump(row, col, selectedRow - 1, selectedCol - 1, BLACK_KING);
+			}
+		} else if(boardstate[selectedRow][selectedCol] === RED_SELECTED){
+			if((selectedRow + 1) === row && (selectedCol + 1) === col){
+				//bottom right
+				out = true;
+				if(row === RED_KING_LINE){
+					pieceMove(row, col, RED_KING);
+				} else {
+					pieceMove(row, col, RED_NORMAL);
+				}
+			} else if((selectedRow + 1) === row && (selectedCol - 1) === col){
+				//bottom left
+				out = true;
+				if(row === RED_KING_LINE){
+					pieceMove(row, col, RED_KING);
+				} else {
+					pieceMove(row, col, RED_NORMAL);
+				}
+			} else if( (selectedRow + 2) === row && (selectedCol + 2) === col &&
+						(boardstate[selectedRow + 1][selectedCol + 1] === BLACK_NORMAL ||
+							boardstate[selectedRow + 1][selectedCol + 1] === BLACK_KING) ) {
+				//bottom right jump red piece
+				out = true;
+				if(row === RED_KING_LINE){
+					pieceJump(row, col, selectedRow + 1, selectedCol + 1, RED_KING);
+				} else {
+					pieceJump(row, col, selectedRow + 1, selectedCol + 1, RED_NORMAL);
+				}
+			} else if((selectedRow + 2) === row && (selectedCol - 2) === col &&
+						(boardstate[selectedRow + 1][selectedCol - 1] === BLACK_NORMAL ||
+							boardstate[selectedRow + 1][selectedCol - 1] === BLACK_KING)){
+				//bottom left jump red piece
+				out = true;
+				if(row === RED_KING_LINE){
+					pieceJump(row, col, selectedRow + 1, selectedCol - 1, RED_KING);
+				} else {
+					pieceJump(row, col, selectedRow + 1, selectedCol - 1, RED_NORMAL);
+				}
+			}
+		} else if(boardstate[selectedRow][selectedCol] === BLACK_SELECTED){
+			if((selectedRow - 1) === row && (selectedCol + 1) === col){
+				//top right
+				out = true;
+				if(row === BLACK_KING_LINE){
+					pieceMove(row, col, BLACK_KING);
+				} else {
+					pieceMove(row, col, BLACK_NORMAL);
+				}
+			} else if ((selectedRow - 1) === row && (selectedCol - 1) === col){
+				//top left
+				out = true;
+				if(row === BLACK_KING_LINE){
+					pieceMove(row, col, BLACK_KING);
+				} else {
+					pieceMove(row, col, BLACK_NORMAL);
+				}
+			} else if( (selectedRow - 2) === row && (selectedCol + 2) === col &&
+						(boardstate[selectedRow - 1][selectedCol + 1] === RED_NORMAL ||
+							boardstate[selectedRow - 1][selectedCol + 1] === RED_KING) ) {
+				//top right jump red piece
+				out = true;
+				if(row === BLACK_KING_LINE){
+					pieceJump(row, col, selectedRow - 1, selectedCol + 1, BLACK_KING);
+				} else {
+					pieceJump(row, col, selectedRow - 1, selectedCol + 1, BLACK_NORMAL);
+				}
+			} else if((selectedRow - 2) === row && (selectedCol - 2) === col &&
+						(boardstate[selectedRow - 1][selectedCol - 1] === RED_NORMAL ||
+							boardstate[selectedRow - 1][selectedCol - 1] === RED_KING)){
+				//top left jump red piece
+				out = true;
+				if(row === BLACK_KING_LINE){
+					pieceJump(row, col, selectedRow - 1, selectedCol - 1, BLACK_KING);
+				} else {
+					pieceJump(row, col, selectedRow - 1, selectedCol - 1, BLACK_NORMAL);
+				}
+			}
+		}
+	}
 
-    //move piece when tile is clicked
-    $('.tile').on("click", function () {
-        //make sure a piece is selected
-        //TODO: is this really how we're going to do this?
-        if($('.selected').length !== 0) {
-            if (Board.playerTurn === Board.team) {
-                //find the tile object being clicked
-                var tileID = $(this).attr("id").replace(/tile/, '');
-                var tile = tiles[tileID];
-                //find the piece being selected
-                var piece = pieces[$('.selected').attr("id")];
-                //check if the tile is in range from the object
-                var isInRangeOfTile = tile.isInRangeOfTile(piece);
-                if (isInRangeOfTile) {
-                    //check if move is a jump.  Perform it if it can, then move it but also check if another jump can be made
-                    if (isInRangeOfTile === "jump") {
-                        if (piece.opponentJump(tile)) {
-                            piece.move(tile);
-                            if (Board.winningTeam !== -1) {
+	return out;
+}
 
-                            } else if (piece.canJump()) {
-                                piece.element.addClass("selected");
-                            } else {
-                                console.log("Sending next turn");
-                                if (Board.team === 1){
-                                    var otherTeam = 2;
-                                } else {
-                                    var otherTeam = 1;
-                                }
-                                sendTurn(Board.board, otherTeam, Board.removedPieces, Board.kingedPieces);
-                            }
-                        }
-                    }
-                    } else if (isInRangeOfTile === "regular") {
-                        if (piece.move(tile)) {
-                            console.log("Sending next turn");
-                            if (Board.team === 1) {
-                                var otherTeam = 2;
-                            } else {
-                                var otherTeam = 1;
-                            }
-                            sendTurn(Board.board, otherTeam, Board.removedPieces, Board.kingedPieces);
-                        }
-                    }
+function pieceMove(row, col, piece){
+	boardstate[selectedRow][selectedCol] = EMPTY_SPACE;
+	selectedCol = col;
+	selectedRow = row;
+	boardstate[row][col] = piece;
+}
+
+function pieceJump(row, col, jRow, jCol, piece){
+	boardstate[selectedRow][selectedCol] = EMPTY_SPACE;  //current spot turns empty
+	boardstate[jRow][jCol] = EMPTY_SPACE; //jump piece disappers
+	selectedPieceRowCol(row, col);
+	boardstate[row][col] = piece;  //move current piece
+	hasJumped = true;
+}
+
+function doesJumpMoveExist(row, col, hasJumped){
+	var out = [];
+
+	if( boardstate[row][col] === RED_KING){
+		if (row+1 > MAX || row+1 < MIN){  //array out of bounds
+			out.push(false);
+		} else if (col+1 > MAX || col+1 < MIN){ //array out of bounds
+			out.push(false);
+		} else if (row+2 > MAX || row+2 < MIN){  //array out of bounds
+			out.push(false);
+		} else if (col+2 > MAX || col+2 < MIN){ //array out of bounds
+			out.push(false);
+		} else if (boardstate[row+2][col+2] === EMPTY_SPACE &&
+			(boardstate[row + 1][col + 1] === BLACK_NORMAL ||
+				boardstate[row + 1][col + 1] === BLACK_KING)){ //bot right
+			out.push(true);
+		}
+
+		if(row+2 > MAX || row+2 < MIN){  //array out of bounds
+			out.push(false);
+		} else if (row+1 > MAX || row+1 < MIN){  //array out of bounds
+			out.push(false);
+		} else if (col-2 > MAX || col-2 <MIN){ //array out of bounds
+			out.push(false);
+		} else if (col-1 > MAX || col-1 < MIN){ //array out of bounds
+			out.push(false);
+		} else if (boardstate[row+2][col-2] === EMPTY_SPACE &&
+			(boardstate[row + 1][col - 1] === BLACK_NORMAL ||
+				boardstate[row + 1][col - 1] === BLACK_KING)){  //bot left
+			out.push(true);
+		}
+
+		if(row-1 > MAX || row-1 < MIN){  //array out of bounds
+			out.push(false);
+		} else if(col+1 > MAX || col+1 < MIN){ //array out of bounds
+			out.push(false);
+		} else if(row-2 > MAX || row-2 < MIN){  //array out of bounds
+			out.push(false);
+		} else if(col+2 > MAX || col+2 < MIN){ //array out of bounds
+			out.push(false);
+		} else if( boardstate[row-2][col + 2] === EMPTY_SPACE  &&
+				(boardstate[row - 1][col + 1] === BLACK_NORMAL ||
+					boardstate[row - 1][col + 1] === BLACK_KING) ) { //top right
+				out.push(true);
+		}
+
+ 		if(row-1 > MAX || row-1 < MIN){  //array out of bounds
+			out.push(false);
+		} else if(row-2 > MAX || row-2 < MIN){  //array out of bounds
+			out.push(false);
+		} else if (col-1 > MAX || col-1 < MIN){ //array out of bounds
+			out.push(false);
+		} else if(col-2 > MAX || col-2 <MIN){ //array out of bounds
+			out.push(false);
+		} else if( (boardstate[row - 2][col - 2] === EMPTY_SPACE) &&
+					(boardstate[row - 1][col - 1] === BLACK_NORMAL ||
+						boardstate[row - 1][col - 1] === BLACK_KING)){ //top left
+			out.push(true);
+		}
+	} else if( boardstate[row][col] === BLACK_KING){
+		if (row+1 > MAX || row+1 < MIN){  //array out of bounds
+			out.push(false);
+		} else if (col+1 > MAX || col+1 < MIN){ //array out of bounds
+			out.push(false);
+		} else if (row+2 > MAX || row+2 < MIN){  //array out of bounds
+			out.push(false);
+		} else if (col+2 > MAX || col+2 < MIN){ //array out of bounds
+			out.push(false);
+		} else if (boardstate[row+2][col+2] === EMPTY_SPACE &&
+			(boardstate[row + 1][col + 1] === RED_NORMAL ||
+				boardstate[row + 1][col + 1] === RED_KING)){ //bot right
+			out.push(true);
+		}
+
+		if(row+2 > MAX || row+2 < MIN){  //array out of bounds
+			out.push(false);
+		} else if (row+1 > MAX || row+1 < MIN){  //array out of bounds
+			out.push(false);
+		} else if (col-2 > MAX || col-2 <MIN){ //array out of bounds
+			out.push(false);
+		} else if (col-1 > MAX || col-1 < MIN){ //array out of bounds
+			out.push(false);
+		} else if (boardstate[row+2][col-2] === EMPTY_SPACE &&
+			(boardstate[row + 1][col - 1] === RED_NORMAL ||
+				boardstate[row + 1][col - 1] === RED_KING)){  //bot left
+			out.push(true);
+		}
+
+		if(row-1 > MAX || row-1 < MIN){  //array out of bounds
+			out.push(false);
+		} else if(col+1 > MAX || col+1 < MIN){ //array out of bounds
+			out.push(false);
+		} else if(row-2 > MAX || row-2 < MIN){  //array out of bounds
+			out.push(false);
+		} else if(col+2 > MAX || col+2 < MIN){ //array out of bounds
+			out.push(false);
+		} else if( boardstate[row-2][col+2] === EMPTY_SPACE  &&
+				(boardstate[row-1][col+1] === RED_NORMAL ||
+					boardstate[row - 1][col + 1] === RED_KING) ) { //top right
+				out.push(true);
+		}
+
+ 		if(row-1 > MAX || row-1 < MIN){  //array out of bounds
+			out.push(false);
+		} else if(row-2 > MAX || row-2 < MIN){  //array out of bounds
+			out.push(false);
+		} else if (col-1 > MAX || col-1 < MIN){ //array out of bounds
+			out.push(false);
+		} else if(col-2 > MAX || col-2 <MIN){ //array out of bounds
+			out.push(false);
+		} else if( (boardstate[row - 2][col - 2] === EMPTY_SPACE) &&
+					(boardstate[row - 1][col - 1] === RED_NORMAL ||
+						boardstate[row - 1][col - 1] === RED_KING)){ //top left
+			out.push(true);
+		}
+	} else if(boardstate[row][col] === RED_NORMAL){
+		if (row+1 > MAX || row+1 < MIN){  //array out of bounds
+			out.push(false);
+		} else if (col+1 > MAX || col+1 < MIN){ //array out of bounds
+			out.push(false);
+		} else if (row+2 > MAX || row+2 < MIN){  //array out of bounds
+			out.push(false);
+		} else if (col+2 > MAX || col+2 < MIN){ //array out of bounds
+			out.push(false);
+		} else if (boardstate[row+2][col+2] === EMPTY_SPACE &&
+			(boardstate[row + 1][col + 1] === BLACK_NORMAL ||
+				boardstate[row + 1][col + 1] === BLACK_KING)){ //bot right
+			out.push(true);
+		}
+
+		if(row+2 > MAX || row+2 < MIN){  //array out of bounds
+			out.push(false);
+		} else if (row+1 > MAX || row+1 < MIN){  //array out of bounds
+			out.push(false);
+		} else if (col-2 > MAX || col-2 <MIN){ //array out of bounds
+			out.push(false);
+		} else if (col-1 > MAX || col-1 < MIN){ //array out of bounds
+			out.push(false);
+		} else if (boardstate[row+2][col-2] === EMPTY_SPACE &&
+			(boardstate[row + 1][col - 1] === BLACK_NORMAL ||
+				boardstate[row + 1][col - 1] === BLACK_KING)){  //bot left
+			out.push(true);
+		}
+	} else if(boardstate[row][col] === BLACK_NORMAL){
+		if(row-1 > MAX || row-1 < MIN){  //array out of bounds
+			out.push(false);
+		} else if(col+1 > MAX || col+1 < MIN){ //array out of bounds
+			out.push(false);
+		} else if(row-2 > MAX || row-2 < MIN){  //array out of bounds
+			out.push(false);
+		} else if(col+2 > MAX || col+2 < MIN){ //array out of bounds
+			out.push(false);
+		} else if( boardstate[row-2][col + 2] === EMPTY_SPACE  &&
+				(boardstate[row - 1][col + 1] === RED_NORMAL ||
+					boardstate[row - 1][col + 1] === RED_KING) ) { //top right
+				out.push(true);
+		}
+
+ 		if(row-1 > MAX || row-1 < MIN){  //array out of bounds
+			out.push(false);
+		} else if(row-2 > MAX || row-2 < MIN){  //array out of bounds
+			out.push(false);
+		} else if (col-1 > MAX || col-1 < MIN){ //array out of bounds
+			out.push(false);
+		} else if(col-2 > MAX || col-2 <MIN){ //array out of bounds
+			out.push(false);
+		} else if( (boardstate[row - 2][col - 2] === EMPTY_SPACE) &&
+					(boardstate[row - 1][col - 1] === RED_NORMAL ||
+						boardstate[row - 1][col - 1] === RED_KING)){ //top left
+			out.push(true);
+		}
+	}
+
+	//checks to see if there is at least one more possible move
+	var temp = false;
+	for(var i = 0; i < out.length; i++){
+		if(out[i] === true){
+			temp = true;
+			break;
+		}
+	}
+	return temp;
+}
+
+function selectedPieceRowCol(row, col){
+	selectedCol = col;
+	selectedRow = row;
+}
+
+function touch(row, col){
+	if (currentPlayersTurn !== team) {
+	    return false;
+    }
+
+	var piece = boardstate[row][col];
+	var isSelectedPiece = findSelectedExist();
+	if(piece === EMPTY_SPACE && isSelectedPiece){
+		moved = isLegalMove(row, col);
+		if(moved){  //move
+			if(hasJumped){
+				hasAnotherLegalMove = doesJumpMoveExist(selectedRow, selectedCol);
+				if(hasAnotherLegalMove) {
+					hasJumped = true;
+					if(boardstate[row][col] === RED_NORMAL || boardstate[row][col] === BLACK_NORMAL){
+						boardstate[row][col] = (currentPlayersTurn === 1) ? RED_SELECTED : BLACK_SELECTED;
+					} else if (boardstate[row][col] === RED_KING || boardstate[row][col] === BLACK_KING){
+						boardstate[row][col] = (currentPlayersTurn === 1) ? RED_KING_SELECTED : BLACK_KING_SELECTED;
+					}
+					selectedCol = col;
+					selectedRow = row;
+				} else {
+					hasAnotherLegalMove = false;
+					hasJumped = false;
+					moved = false;
+					changePlayersTurn();
+                    sendTurn(boardstate, currentPlayersTurn);
                 }
+			} else {
+				hasAnotherLegalMove = false;
+				hasJumped = false;
+				moved = false;
+				changePlayersTurn();
+                sendTurn(boardstate, currentPlayersTurn);
             }
-        }
-    });
+		}
+	} else if(piece%2 === 0 && currentPlayersTurn === 2 && !isStillTurn && !hasJumped){
+		//selecting a piece during player 2s turn
+		deSelectAllPieces();
+		if(piece === BLACK_KING){
+			boardstate[row][col] = BLACK_KING_SELECTED;
+			selectedPieceRowCol(row, col);
+		} else if(piece === BLACK_NORMAL) {
+			boardstate[row][col] = BLACK_SELECTED;
+			selectedPieceRowCol(row, col);
+		}
+	} else if (piece%2 === 1 && currentPlayersTurn === 1 && !isStillTurn && !hasJumped){
+		// selecting a piece during player 1s turns
+		deSelectAllPieces();
+		if(piece === RED_KING){
+			boardstate[row][col] = RED_KING_SELECTED;
+			selectedPieceRowCol(row, col);
+		} else if(piece === RED_NORMAL) {
+			boardstate[row][col] = RED_SELECTED;
+			selectedPieceRowCol(row, col);
+		}
+	}
+	drawBoard();
+}
 
-    //select the piece on click if it is the player's turn
-    $('.piece').on("click", function () {
-        var selected;
-        var isPlayersTurn = (Board.playerTurn === Board.team) && ($(this).parent().attr("class") === "player" + Board.playerTurn + "pieces");
-        if(isPlayersTurn) {
-            if($(this).hasClass('selected')) {
-                selected = true;
-            }
-            $('.piece').each(function(index) {$('.piece').eq(index).removeClass('selected')});
-            if(!selected) {
-                $(this).addClass('selected');
-            }
-        }
-    });
-};
+function resetBoard(){
+    //Can only reset if it's their turn? Who knows the effectiveness of this.
+    if (currentPlayersTurn === team) {
+        selectedCol = 0;
+        selectedRow = 0;
+        isStillTurn = false;
+        isEndGame = false;
+        currentPlayersTurn = 1;
+        boardstate = [
+            [0, 1, 0, 1, 0, 1, 0, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0],
+            [0, 1, 0, 1, 0, 1, 0, 1],
+            [9, 0, 9, 0, 9, 0, 9, 0],
+            [0, 9, 0, 9, 0, 9, 0, 9],
+            [2, 0, 2, 0, 2, 0, 2, 0],
+            [0, 2, 0, 2, 0, 2, 0, 2],
+            [2, 0, 2, 0, 2, 0, 2, 0]
+        ];
+        sendTurn(boardstate, currentPlayersTurn);
+    }
+}
+
+
+$(document).ready(function(){
+	drawBoard();
+	connect();
+    $('.reset').on("click", function() { resetBoard(); });
+});
+
+
+
+
 
