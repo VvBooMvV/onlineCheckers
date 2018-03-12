@@ -11,19 +11,14 @@ public class CheckerModel {
 
     private String msgType;
 
-    private int[] removedPieces;
-    private int[] kingedPieces;
-
     public CheckerModel() {
         //for spring
     }
 
-    public CheckerModel(int[][] board, int currentTurn, int[] removedPieces, int[] kingedPieces) {
+    public CheckerModel(int[][] board, int currentTurn) {
         this.board = board;
         this.currentTurn = currentTurn;
         this.msgType = "move";
-        this.removedPieces = removedPieces;
-        this.kingedPieces = kingedPieces;
     }
 
     public int[][] getBoard() {
@@ -48,21 +43,5 @@ public class CheckerModel {
 
     public void setMsgType(String msgType) {
         this.msgType = msgType;
-    }
-
-    public int[] getRemovedPieces() {
-        return removedPieces;
-    }
-
-    public void setRemovedPieces(int[] removedPieces) {
-        this.removedPieces = removedPieces;
-    }
-
-    public int[] getKingedPieces() {
-        return kingedPieces;
-    }
-
-    public void setKingedPieces(int[] kingedPieces) {
-        this.kingedPieces = kingedPieces;
     }
 }

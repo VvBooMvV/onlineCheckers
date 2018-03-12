@@ -219,6 +219,8 @@ window.onload = function() {
         playerTurn: 1,
         //Set by initial ack received from server.  1 for red, 2 for black
         team: -1,
+        //Winning team is set by message
+        winningTeam: -1,
         //The list of tiles
         tilesElement: $('div.tiles'),
         //dictionary to convert position in Board.board to the viewport units
@@ -396,6 +398,8 @@ window.onload = function() {
             } else {
                 console.log("Fuck off");
             }
+        } else if (messageOutput.msgType === "win") {
+            Board.winningTeam = messageOutput.team;
         }
     }
 
@@ -433,7 +437,9 @@ window.onload = function() {
                     if (isInRangeOfTile === "jump") {
                         if (piece.opponentJump(tile)) {
                             piece.move(tile);
-                            if (piece.canJump()) {
+                            if (Board.winningTeam !== -1) {
+
+                            } else if (piece.canJump()) {
                                 piece.element.addClass("selected");
                             } else {
                                 console.log("Sending next turn");
@@ -445,6 +451,7 @@ window.onload = function() {
                                 sendTurn(Board.board, otherTeam, Board.removedPieces, Board.kingedPieces);
                             }
                         }
+                    }
                     } else if (isInRangeOfTile === "regular") {
                         if (piece.move(tile)) {
                             console.log("Sending next turn");
