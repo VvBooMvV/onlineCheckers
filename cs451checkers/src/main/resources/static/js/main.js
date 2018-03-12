@@ -38,6 +38,15 @@ function sendTurn(boardstate, playerTurn) {
     );
 }
 
+//Abuses TurnModel
+function sendConcede(msgType, team) {
+    stompClient.send("/checkers/join", {},
+        JSON.stringify({
+            'msgType': msgType,
+            'team': team
+        }))
+}
+
 function showMessageOutput(messageOutput) {
     if (messageOutput.msgType === "move") {
         console.log("Message output from server: ");
@@ -54,6 +63,8 @@ function showMessageOutput(messageOutput) {
             receivedBothPlayers = true;
         }
         toggleWaitingBanner();
+    } else if (messageOutput.msgType === "concede") {
+        endGame(messageOutput.team);
     }
 }
 
@@ -176,7 +187,7 @@ function drawBoard(){
 	$(".display").html('Current Turn: ' + currentTurn);
 	var bgColor = (currentPlayersTurn === 1 ? "#cc0000" : "#111111")
 	$("body").css("background-color", bgColor);
-	endGame();
+	endGame(0);
 }
 
 
@@ -191,7 +202,7 @@ function changePlayersTurn(){
 	deSelectAllPieces();
 }
 
-function endGame(){
+function endGame(team){
 	blackNum = 0;
 	redNum = 0;
 	for(var col = 0; col < boardstate.length; col++){
@@ -206,6 +217,11 @@ function endGame(){
 		}
 	}
 
+	if (team === -1) {
+	    redNum = 0;
+    } else if (team === -2) {
+	    blackNum = 0;
+    }
 	if(blackNum === 0){
 		$(".display").html("Player One Wins!");
 		$("body").css("background-color", "#cc0000");
@@ -219,6 +235,16 @@ function endGame(){
         receivedBothPlayers = false;
         //disconnect();
 	}
+}
+
+function concede() {
+    if (team === 1 && currentPlayersTurn === team) {
+        redNum = 0;
+        sendConcede("concede", -1);
+    } else if (team === 2 && currentPlayersTurn === team) {
+        blackNum = 0;
+        sendConcede("concede", -2);
+    }
 }
 
 function findSelectedExist(){
@@ -718,6 +744,7 @@ $(document).ready(function(){
 	drawBoard();
 	connect();
     $('.reset').on("click", function() { resetBoard(); });
+    $('.concede').on("click", function() { concede(); });
 });
 
 

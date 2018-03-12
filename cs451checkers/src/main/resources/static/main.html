@@ -1,20 +1,22 @@
 <!DOCTYPE html>
-<html lang="en" >
-
-
+<html>
 <head>
-    <title>CS451 Checkers</title>
+    <title>
+        CS451 Checkers
+    </title>
     <link rel="stylesheet" href="/css/main.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="/js/sockjs.min.js" type="text/javascript"></script>
     <script src="/js/stomp.min.js" type="text/javascript"></script>
+    <script src="/js/main.js" type="text/javascript"></script>
+
+
 </head>
 <body>
 
-<h1 class="centered">CS451 Checkers</h1>
-<h3 class="centered"><a href="main.html"><button class="startmenu">Start</button></a></h3>
-<p>
-<h3 class="centered"><a href="howto.html"><button class="startmenu">How To Play</button></a></h3>
+    <div class="board hidden"></div>
+    <div class="display"></div>
+    <div class="centered"><button class="concede">Concede</button><button class="reset">Reset</button></div>
 
 </body>
 </html>

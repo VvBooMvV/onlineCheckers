@@ -17,6 +17,9 @@ public class MoveController {
     @MessageMapping("/join")
     @SendTo("/game/init")
     public TurnModel sendMessage(TurnModel message) {
+        if (message.getMsgType().equals("concede")) {
+            return message;
+        }
         if (initialTeam <= 2) {
             TurnModel responseMessage = new TurnModel("init", initialTeam);
             initialTeam++;
@@ -25,17 +28,6 @@ public class MoveController {
             initialTeam = 1;
             return new TurnModel("init", initialTeam);
         }
-        /*if (initialConnection) {
-            TurnModel responseMessage = new TurnModel("init", initialTeam);
-            initialTeam++;
-            initialConnection = false;
-            return responseMessage;
-        } else {
-            TurnModel responseMessage = new TurnModel("init", initialTeam);
-            initialConnection = true;
-            initialTeam = 1;
-            return responseMessage;
-        }*/
     }
 
     @MessageMapping("/processturn")
