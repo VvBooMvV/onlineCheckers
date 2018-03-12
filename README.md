@@ -12,9 +12,10 @@ TODOs:
   
 ~~-Simple websocket communication~~
   
--Client to client hosting  
+~~Client to client hosting~~
   
--other shenanigans we discussed  
+~~other shenanigans we discussed~~  
   
-  
-This won't cover any nitty gritty stuff that should be discussed as a team.  I'll take the liberty of some architectural decisions and then move on.
+-Additional Stuff:  
+   -Landing page  
+   -Waits for other person to join.  
