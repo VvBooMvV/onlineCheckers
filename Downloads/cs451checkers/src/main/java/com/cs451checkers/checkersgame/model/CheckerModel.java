@@ -1,6 +1,6 @@
 package com.cs451checkers.checkersgame.model;
 
-public class TestModel {
+public class CheckerModel {
 
     //Incoming, updated board state
     private int[][] board;
@@ -12,16 +12,18 @@ public class TestModel {
     private String msgType;
 
     private int[] removedPieces;
+    private int[] kingedPieces;
 
-    public TestModel() {
+    public CheckerModel() {
         //for spring
     }
 
-    public TestModel(int[][] board, int currentTurn, int[] removedPieces) {
+    public CheckerModel(int[][] board, int currentTurn, int[] removedPieces, int[] kingedPieces) {
         this.board = board;
         this.currentTurn = currentTurn;
         this.msgType = "move";
         this.removedPieces = removedPieces;
+        this.kingedPieces = kingedPieces;
     }
 
     public int[][] getBoard() {
@@ -54,5 +56,13 @@ public class TestModel {
 
     public void setRemovedPieces(int[] removedPieces) {
         this.removedPieces = removedPieces;
+    }
+
+    public int[] getKingedPieces() {
+        return kingedPieces;
+    }
+
+    public void setKingedPieces(int[] kingedPieces) {
+        this.kingedPieces = kingedPieces;
     }
 }

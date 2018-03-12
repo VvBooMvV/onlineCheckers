@@ -1,8 +1,6 @@
 package com.cs451checkers.checkersgame.controller;
 
-import com.cs451checkers.checkersgame.model.Message;
-import com.cs451checkers.checkersgame.model.MoveModel;
-import com.cs451checkers.checkersgame.model.TestModel;
+import com.cs451checkers.checkersgame.model.CheckerModel;
 import com.cs451checkers.checkersgame.model.TurnModel;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -28,7 +26,7 @@ public class MoveController {
 
     @MessageMapping("/processturn")
     @SendTo("/game/init")
-    public TestModel sendTurnResponse(TestModel latestMove) {
+    public CheckerModel sendTurnResponse(CheckerModel latestMove) {
         return latestMove;
     }
 
