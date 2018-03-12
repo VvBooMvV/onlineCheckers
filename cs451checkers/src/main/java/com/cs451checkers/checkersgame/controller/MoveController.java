@@ -11,6 +11,8 @@ public class MoveController {
 
     //1 is red, 2 is black
     int initialTeam = 1;
+    boolean initialConnection = true;
+
 
     @MessageMapping("/join")
     @SendTo("/game/init")
@@ -20,8 +22,20 @@ public class MoveController {
             initialTeam++;
             return responseMessage;
         } else {
-            return new TurnModel("full", -1);
+            initialTeam = 1;
+            return new TurnModel("init", initialTeam);
         }
+        /*if (initialConnection) {
+            TurnModel responseMessage = new TurnModel("init", initialTeam);
+            initialTeam++;
+            initialConnection = false;
+            return responseMessage;
+        } else {
+            TurnModel responseMessage = new TurnModel("init", initialTeam);
+            initialConnection = true;
+            initialTeam = 1;
+            return responseMessage;
+        }*/
     }
 
     @MessageMapping("/processturn")

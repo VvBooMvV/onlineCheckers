@@ -91,3 +91,8 @@ body , html{
     margin: 0 auto;
     text-align: center;
 }
+
+.banner{
+    font-size: 48px;
+    color: white;
+}

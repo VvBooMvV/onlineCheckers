@@ -50,10 +50,29 @@ function showMessageOutput(messageOutput) {
         if (team === -1) {
             team = messageOutput.team;
         }
+        if (messageOutput.team === 2) {
+            receivedBothPlayers = true;
+        }
+        toggleWaitingBanner();
+    }
+}
+
+//Used to block until other player joins
+function toggleWaitingBanner() {
+    if (!receivedBothPlayers) {
+        var banner = document.getElementById("banner");
+        if (!banner) {
+            $("body").append("<div id='banner' class='banner centered'>Waiting for the other player</div>");
+        } else {
+            $(".banner").css("display", "inline");
+        }
+    } else {
+        $(".banner").css("display", "none");
     }
 }
 
 var team = -1;
+var receivedBothPlayers = false;
 
 function redraw(newBoardstate, playerTurn) {
     currentPlayersTurn = playerTurn;
@@ -78,7 +97,6 @@ var currentPlayersTurn = 1;
 //local
 var selectedRow, selectedCol;
 var isStillTurn = false;
-var endTurn = false;
 var hasJumped = false;
 var hasAnotherLegalMove = false;
 var moved = false;
@@ -192,10 +210,14 @@ function endGame(){
 		$(".display").html("Player One Wins!");
 		$("body").css("background-color", "#cc0000");
 		isEndGame = true;
+        receivedBothPlayers = false;
+        //disconnect();
 	} else if(redNum === 0){
 		$(".display").html("Player Two Wins!");
 		$("body").css("background-color", "#111111");
 		isEndGame = true;
+        receivedBothPlayers = false;
+        //disconnect();
 	}
 }
 
@@ -609,7 +631,8 @@ function selectedPieceRowCol(row, col){
 }
 
 function touch(row, col){
-	if (currentPlayersTurn !== team) {
+	if (currentPlayersTurn !== team || !receivedBothPlayers) {
+	    console.log("Didn't receive both players");
 	    return false;
     }
 
@@ -670,7 +693,7 @@ function touch(row, col){
 
 function resetBoard(){
     //Can only reset if it's their turn? Who knows the effectiveness of this.
-    if (currentPlayersTurn === team) {
+    if (currentPlayersTurn === team && receivedBothPlayers) {
         selectedCol = 0;
         selectedRow = 0;
         isStillTurn = false;

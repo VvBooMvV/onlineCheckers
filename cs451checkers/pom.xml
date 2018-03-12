@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.cs451checkers</groupId>
-	<artifactId>Checkers Game</artifactId>
+	<artifactId>Checkers_Game</artifactId>
 	<version>0.0.1.01</version>
 	<packaging>jar</packaging>
 
